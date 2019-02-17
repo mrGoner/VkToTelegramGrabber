@@ -1,0 +1,14 @@
+/Users/roman/Projects/VkToTelegramGrabber/TestConsole/bin/Debug/netcoreapp2.1/TestConsole.deps.json
+/Users/roman/Projects/VkToTelegramGrabber/TestConsole/bin/Debug/netcoreapp2.1/TestConsole.runtimeconfig.json
+/Users/roman/Projects/VkToTelegramGrabber/TestConsole/bin/Debug/netcoreapp2.1/TestConsole.runtimeconfig.dev.json
+/Users/roman/Projects/VkToTelegramGrabber/TestConsole/bin/Debug/netcoreapp2.1/TestConsole.dll
+/Users/roman/Projects/VkToTelegramGrabber/TestConsole/bin/Debug/netcoreapp2.1/TestConsole.pdb
+/Users/roman/Projects/VkToTelegramGrabber/TestConsole/bin/Debug/netcoreapp2.1/VkTools.dll
+/Users/roman/Projects/VkToTelegramGrabber/TestConsole/bin/Debug/netcoreapp2.1/VkTools.pdb
+/Users/roman/Projects/VkToTelegramGrabber/TestConsole/obj/Debug/netcoreapp2.1/TestConsole.csprojAssemblyReference.cache
+/Users/roman/Projects/VkToTelegramGrabber/TestConsole/obj/Debug/netcoreapp2.1/TestConsole.csproj.CoreCompileInputs.cache
+/Users/roman/Projects/VkToTelegramGrabber/TestConsole/obj/Debug/netcoreapp2.1/TestConsole.AssemblyInfoInputs.cache
+/Users/roman/Projects/VkToTelegramGrabber/TestConsole/obj/Debug/netcoreapp2.1/TestConsole.AssemblyInfo.cs
+/Users/roman/Projects/VkToTelegramGrabber/TestConsole/obj/Debug/netcoreapp2.1/TestConsole.csproj.CopyComplete
+/Users/roman/Projects/VkToTelegramGrabber/TestConsole/obj/Debug/netcoreapp2.1/TestConsole.dll
+/Users/roman/Projects/VkToTelegramGrabber/TestConsole/obj/Debug/netcoreapp2.1/TestConsole.pdb

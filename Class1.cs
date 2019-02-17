@@ -2,7 +2,5 @@
 
 namespace VkToTelegramGrabber
 {
-    public class Class1
-    {
-    }
+
 }

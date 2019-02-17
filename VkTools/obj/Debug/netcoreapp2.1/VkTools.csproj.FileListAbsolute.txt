@@ -1,0 +1,4 @@
+/Users/roman/Projects/VkToTelegramGrabber/VkTools/obj/Debug/netcoreapp2.1/VkTools.csprojAssemblyReference.cache
+/Users/roman/Projects/VkToTelegramGrabber/VkTools/obj/Debug/netcoreapp2.1/VkTools.csproj.CoreCompileInputs.cache
+/Users/roman/Projects/VkToTelegramGrabber/VkTools/obj/Debug/netcoreapp2.1/VkTools.AssemblyInfoInputs.cache
+/Users/roman/Projects/VkToTelegramGrabber/VkTools/obj/Debug/netcoreapp2.1/VkTools.AssemblyInfo.cs

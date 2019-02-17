@@ -3,6 +3,10 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VkToTelegramGrabber", "VkToTelegramGrabber.csproj", "{30081731-6E8E-4099-8FF7-40D8B6E0C710}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VkTools", "VkTools\VkTools.csproj", "{4BF3FC87-0F30-4FEF-926B-17F08627D843}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestConsole", "TestConsole\TestConsole.csproj", "{61FEA1E3-BC4B-4682-A2F1-961E9E0E8218}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -13,5 +17,13 @@ Global
 		{30081731-6E8E-4099-8FF7-40D8B6E0C710}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{30081731-6E8E-4099-8FF7-40D8B6E0C710}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{30081731-6E8E-4099-8FF7-40D8B6E0C710}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4BF3FC87-0F30-4FEF-926B-17F08627D843}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BF3FC87-0F30-4FEF-926B-17F08627D843}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BF3FC87-0F30-4FEF-926B-17F08627D843}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4BF3FC87-0F30-4FEF-926B-17F08627D843}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61FEA1E3-BC4B-4682-A2F1-961E9E0E8218}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61FEA1E3-BC4B-4682-A2F1-961E9E0E8218}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61FEA1E3-BC4B-4682-A2F1-961E9E0E8218}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61FEA1E3-BC4B-4682-A2F1-961E9E0E8218}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
