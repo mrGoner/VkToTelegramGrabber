@@ -1,32 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
+using VkTools.ObjectModel;
+using VkTools.ObjectModel.Attachments;
+using VkTools.ObjectModel.Attachments.Photo;
+using VkTools.ObjectModel.Wall;
 
-namespace VkTools
+namespace VkTools.Serializers
 {
-    public class NewsFeedSerializer : INewsFeedSerializer
+    public partial class NewsFeedSerializer
     {
-        public const string PResponse = "response";
-        public const string PItems = "items";
-        public const string PItemType = "type";
-        public const string PItemDate = "date";
-        public const string PItemId = "post_id";
-        public const string PItemPostType = "post_type";
-        public const string PItemText = "text";
-        public const string PItemSignerId = "signer_id";
-        public const string PItemMarkedAsAds = "marked_as_ads";
-        public const string PAttachments = "attachments";
-        public const string PAttachmentsType = "type";
-        public const string PAttachmentsPhoto = "photo";
-        public const string PPhotoId = "id";
-        public const string PPhotoAlbumId = "album_id";
-        public const string PPhotoOwnerId = "owner_id";
-        public const string PPhotoUserId = "user_id";
-        public const string PPhotoSizes = "sizes";
-        public const string PSizesType = "type";
-        public const string PSizesUrl = "url";
-        public const string PSizesWidth = "width";
-        public const string PSizesHeight = "height";
         private readonly EpochTimeConverter m_timeConverter;
 
         public NewsFeedSerializer()
@@ -60,11 +43,6 @@ namespace VkTools
             throw new ArgumentException();
         }
 
-        public string Serialize(NewsFeed _object)
-        {
-            throw new NotImplementedException();
-        }
-
         private Post ParsePostItem(JObject _jPostItem)
         {
             var post = new Post();
@@ -83,11 +61,6 @@ namespace VkTools
             return post;
         }
 
-        private PostSource ParsePostSource(JObject _postSource)
-        {
-            return null;
-        }
-
         private Comments ParseComments(JObject _comments)
         {
             var comments = new Comments
@@ -98,9 +71,71 @@ namespace VkTools
             return comments;
         }
 
-        private Likes ParseLikes(JObject _likes)
+        private PostSource ParsePostSource(JObject _jPostSource)
         {
-            return new Likes();
+            var postSource = new PostSource();
+
+            var postSourceRawType = _jPostSource[PPostSourceType].Value<string>();
+            
+            switch (postSourceRawType)
+            {
+                case "vk":
+                    postSource.Type = PostSourceType.Vk;
+                    break;
+                case "widget":
+                    postSource.Type = PostSourceType.Widget;
+                    break;
+                case "api":
+                    postSource.Type = PostSourceType.Api;
+                    break;
+                case "rss":
+                    postSource.Type = PostSourceType.Rss;
+                     break;
+                case "sms":
+                    postSource.Type = PostSourceType.Sms;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            var rawPlatformType = _jPostSource[PPostSourcePlatform]?.Value<string>();
+
+            if(rawPlatformType != null)
+            {
+                switch (rawPlatformType)
+                {
+                    case "android":
+                        postSource.Platfrom = PlatformType.Android;
+                        break;
+                    case "iphone":
+                        postSource.Platfrom = PlatformType.Iphone;
+                        break;
+                    case "wphone":
+                        postSource.Platfrom = PlatformType.WPhone;
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+
+            if (postSource.Type == PostSourceType.Widget || postSource.Type == PostSourceType.Vk)
+            {
+                postSource.Data = _jPostSource[PPostSourceData]?.Value<string>();
+            }
+
+            postSource.Url = _jPostSource[PPostSourceUrl]?.Value<string>();
+
+            return postSource;
+        }
+
+        private Likes ParseLikes(JObject _jLikes)
+        {
+            var count = _jLikes[PLikesCount].Value<int>();
+            bool userLikes = _jLikes[PLikesUserLikes].Value<int>() != 0;
+            bool canLike = _jLikes[PLikesCanLike].Value<int>() != 0;
+            bool canPublish = _jLikes[PLikesCanPublish].Value<int>() != 0;
+
+            return new Likes(count, userLikes, canLike, canPublish);
         }
 
         private Reposts ParseReposts(JObject _reposts)
@@ -174,11 +209,5 @@ namespace VkTools
         {
             return m_startTime.AddSeconds(_seconds);
         }
-    }
-
-    public interface INewsFeedSerializer
-    {
-        string Serialize(NewsFeed _object);
-        NewsFeed Deserialize(string _data);
     }
 }

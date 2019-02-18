@@ -1,5 +1,6 @@
 ﻿using System;
 using VkTools;
+using VkTools.Serializers;
 
 namespace TestConsole
 {

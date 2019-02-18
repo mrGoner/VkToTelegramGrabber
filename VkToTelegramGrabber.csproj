@@ -39,6 +39,14 @@
     <None Remove="VkTools\obj\Debug\netcoreapp2.1\VkTools.csproj.FileListAbsolute.txt" />
     <None Remove="VkTools\obj\Debug\netcoreapp2.1\VkTools.dll" />
     <None Remove="VkTools\obj\Debug\netcoreapp2.1\VkTools.pdb" />
+    <None Remove="TestConsole\bin\Debug\netcoreapp2.1\VkTools.dll" />
+    <None Remove="TestConsole\bin\Debug\netcoreapp2.1\TestConsole.dll" />
+    <None Remove="TestConsole\bin\Debug\netcoreapp2.1\TestConsole.pdb" />
+    <None Remove="TestConsole\obj\Debug\netcoreapp2.1\TestConsole.csprojAssemblyReference.cache" />
+    <None Remove="TestConsole\bin\Debug\netcoreapp2.1\TestConsole.dll" />
+    <None Remove="TestConsole\bin\Debug\netcoreapp2.1\TestConsole.pdb" />
+    <None Remove="TestConsole\obj\Debug\netcoreapp2.1\TestConsole.csprojAssemblyReference.cache" />
+    <None Remove="VkTools\bin\Debug\netcoreapp2.1\VkTools.dll" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="VkTools\Class1.cs" />
@@ -51,5 +59,35 @@
     <Compile Remove="VkTools\NewsFeedSerializer.cs" />
     <Compile Remove="VkTools\Class1.cs" />
     <Compile Remove="TestConsole\Program.cs" />
+    <Compile Remove="VkTools\Class1.cs" />
+    <Compile Remove="VkTools\ObjectModel\Comments.cs" />
+    <Compile Remove="VkTools\ObjectModel\Likes.cs" />
+    <Compile Remove="VkTools\ObjectModel\Reposts.cs" />
+    <Compile Remove="VkTools\ObjectModel\Views.cs" />
+    <Compile Remove="VkTools\Serializer\INewsFeedSerializer.cs" />
+    <Compile Remove="VkTools\Serializer\NewsFeedSerializer.cs" />
+    <Compile Remove="VkTools\ObjectModel\Attachments\AttachmentElement.cs" />
+    <Compile Remove="VkTools\ObjectModel\Attachments\AttachmentElementType.cs" />
+    <Compile Remove="VkTools\ObjectModel\Attachments\Photo\PhotoAttachment.cs" />
+    <Compile Remove="VkTools\ObjectModel\Attachments\Photo\PhotoInfo.cs" />
+    <Compile Remove="VkTools\ObjectModel\Attachments\Photo\PhotoSizeInfo.cs" />
+    <Compile Remove="VkTools\ObjectModel\Attachments\Photo\PhotoSizeType.cs" />
+    <Compile Remove="VkTools\ObjectModel\Wall\NewsFeed.cs" />
+    <Compile Remove="VkTools\ObjectModel\Wall\NewsFeedElement.cs" />
+    <Compile Remove="VkTools\ObjectModel\Wall\Post.cs" />
+    <Compile Remove="VkTools\ObjectModel\Wall\NewsFeedType.cs" />
+    <Compile Remove="VkTools\ObjectModel\Wall\PostSourceType.cs" />
+    <Compile Remove="VkTools\ObjectModel\Wall\PostSource.cs" />
+    <Compile Remove="VkTools\Serializer\NewsFeedSerializer.cs" />
+    <Compile Remove="VkTools\Serializers\NewsFeedSerializer.cs" />
+    <Compile Remove="VkTools\ObjectModel\Wall\Post.cs" />
+    <Compile Remove="TestConsole\Program.cs" />
+    <Compile Remove="VkTools\Authorization\AuthHelper.cs" />
+    <Compile Remove="VkTools\ObjectModel\Wall\PostSourceType.cs" />
+    <Compile Remove="VkTools\ObjectModel\Wall\PostSource.cs" />
+    <Compile Remove="VkTools\Serializers\NewsFeedSerializer.cs" />
+    <Compile Remove="VkTools\Serializers\SerializerConstsPartial.cs" />
+    <Compile Remove="VkTools\ObjectModel\Likes.cs" />
+    <Compile Remove="VkTools\ObjectModel\Comments.cs" />
   </ItemGroup>
 </Project>

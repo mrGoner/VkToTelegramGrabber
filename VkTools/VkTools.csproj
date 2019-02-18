@@ -7,4 +7,15 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Serializers\" />
+    <Folder Include="ObjectModel\" />
+    <Folder Include="ObjectModel\Attachments\" />
+    <Folder Include="ObjectModel\Attachments\Photo\" />
+    <Folder Include="ObjectModel\Wall\" />
+    <Folder Include="Authorization\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Serializer\INewsFeedSerializer.cs" />
+  </ItemGroup>
 </Project>
