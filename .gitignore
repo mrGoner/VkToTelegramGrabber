@@ -40,7 +40,7 @@ Thumbs.db
 # dotCover
 *.dotCover
 
-/VkTools/bin
-/VkTools/obj
-/TestConsole/bin
-/TestConsole/obj
+VkTools/bin/
+VkTools/obj/
+TestConsole/bin/
+TestConsole/obj/
