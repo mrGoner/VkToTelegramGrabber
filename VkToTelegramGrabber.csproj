@@ -47,6 +47,13 @@
     <None Remove="TestConsole\bin\Debug\netcoreapp2.1\TestConsole.pdb" />
     <None Remove="TestConsole\obj\Debug\netcoreapp2.1\TestConsole.csprojAssemblyReference.cache" />
     <None Remove="VkTools\bin\Debug\netcoreapp2.1\VkTools.dll" />
+    <None Remove="VkTools\bin\Debug\netcoreapp2.1\VkTools.dll" />
+    <None Remove="VkTools\bin\Debug\netcoreapp2.1\VkTools.pdb" />
+    <None Remove="VkTools\obj\Debug\netcoreapp2.1\VkTools.assets.cache" />
+    <None Remove="TestConsole\bin\Debug\netcoreapp2.1\TestConsole.dll" />
+    <None Remove="TestConsole\bin\Debug\netcoreapp2.1\TestConsole.pdb" />
+    <None Remove="TestConsole\bin\Debug\netcoreapp2.1\TestConsole.runtimeconfig.json" />
+    <None Remove="TestConsole\bin\Debug\netcoreapp2.1\VkTools.pdb" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="VkTools\Class1.cs" />
@@ -89,5 +96,21 @@
     <Compile Remove="VkTools\Serializers\SerializerConstsPartial.cs" />
     <Compile Remove="VkTools\ObjectModel\Likes.cs" />
     <Compile Remove="VkTools\ObjectModel\Comments.cs" />
+    <Compile Remove="VkTools\ObjectModel\Attachments\Photo\PhotoSizeInfo.cs" />
+    <Compile Remove="VkTools\ObjectModel\Attachments\Photo\PhotoAttachment.cs" />
+    <Compile Remove="VkTools\ObjectModel\Attachments\AttachmentElement.cs" />
+    <Compile Remove="VkTools\ObjectModel\Attachments\AttachmentElementType.cs" />
+    <Compile Remove="VkTools\ObjectModel\Attachments\Doc\DocumentAttachment.cs" />
+    <Compile Remove="VkTools\Serializers\SerializerConstsPartial.cs" />
+    <Compile Remove="VkTools\Serializers\NewsFeedSerializer.cs" />
+    <Compile Remove="VkTools\ObjectModel\Attachments\Video\VideoAttachment.cs" />
+    <Compile Remove="VkTools\ObjectModel\Views.cs" />
+    <Compile Remove="VkTools\ObjectModel\Reposts.cs" />
+    <Compile Remove="VkTools\ObjectModel\Comments.cs" />
+    <Compile Remove="VkTools\ObjectModel\Attachments\Audio\AudioAttachment.cs" />
+    <Compile Remove="VkTools\ObjectModel\Attachments\Link\LinkAttachment.cs" />
+    <Compile Remove="VkTools\Serializers\NewsFeedSerializerException.cs" />
+    <Compile Remove="VkTools\ObjectModel\Attachments\UnsupportedAttachment.cs" />
+    <Compile Remove="VkTools\ObjectModel\Wall\Post.cs" />
   </ItemGroup>
 </Project>

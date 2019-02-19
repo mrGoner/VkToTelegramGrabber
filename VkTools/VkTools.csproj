@@ -14,6 +14,10 @@
     <Folder Include="ObjectModel\Attachments\Photo\" />
     <Folder Include="ObjectModel\Wall\" />
     <Folder Include="Authorization\" />
+    <Folder Include="ObjectModel\Attachments\Doc\" />
+    <Folder Include="ObjectModel\Attachments\Audio\" />
+    <Folder Include="ObjectModel\Attachments\Video\" />
+    <Folder Include="ObjectModel\Attachments\Link\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Serializer\INewsFeedSerializer.cs" />

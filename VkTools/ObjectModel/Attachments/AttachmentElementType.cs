@@ -3,6 +3,10 @@
     public enum AttachmentElementType
     {
         Photo,
-        Music
+        Video,
+        Audio,
+        Doc,
+        Link,
+        Unsupported
     }
 }

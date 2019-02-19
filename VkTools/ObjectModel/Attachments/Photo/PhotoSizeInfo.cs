@@ -2,9 +2,17 @@
 {
     public struct PhotoSizeInfo
     {
-        public PhotoSizeType Type { get; internal set; }
-        public string Url { get; internal set; }
-        public int Width { get; internal set; }
-        public int Height { get; internal set; }
+        public PhotoSizeType Type { get; }
+        public string Url { get; }
+        public int Width { get; }
+        public int Height { get; }
+
+        public PhotoSizeInfo(PhotoSizeType _type, string _url, int _width, int _heigh)
+        {
+            Type = _type;
+            Url = _url;
+            Width = _width;
+            Height = _heigh;
+        }
     }
 }
