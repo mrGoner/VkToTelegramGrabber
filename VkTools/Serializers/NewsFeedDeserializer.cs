@@ -94,11 +94,11 @@ namespace VkTools.Serializers
                 }
                 catch(Exception ex)
                 {
-                    throw new NewsFeedDeserializerException("Failed to deserialize newsfeed", ex);
+                    throw new DeserializerException("Failed to deserialize newsfeed", ex);
                 }
             }
 
-            throw new NewsFeedDeserializerException("Failed recognize jObject as vk response", _data);
+            throw new DeserializerException("Failed recognize jObject as vk response", _data);
         }
 
         private Post ParsePostItem(JObject _jPostItem)
@@ -176,7 +176,7 @@ namespace VkTools.Serializers
                         postSource.Platfrom = PlatformType.WPhone;
                         break;
                     default:
-                        throw new ArgumentOutOfRangeException();
+                        throw new ArgumentOutOfRangeException($"{rawPlatformType} out of range!");
                 }
             }
 
@@ -286,7 +286,7 @@ namespace VkTools.Serializers
                 return photoAttachment;
             }
 
-            throw new NewsFeedDeserializerException("Failed recognize jObject as photo attachment", _jPhoto?.ToString());
+            throw new DeserializerException("Failed recognize jObject as photo attachment", _jPhoto?.ToString());
         }
 
         private DocumentAttachment ParseDocAttachment(JObject _jDoc)
@@ -305,7 +305,7 @@ namespace VkTools.Serializers
                 return docAttachment;
             }
 
-            throw new NewsFeedDeserializerException("Failed recognize jObject as document attachment", _jDoc?.ToString());
+            throw new DeserializerException("Failed recognize jObject as document attachment", _jDoc?.ToString());
         }
 
         private VideoAttachment ParseVideoAttachment(JObject _jVideo)
@@ -329,7 +329,7 @@ namespace VkTools.Serializers
                 return videoAttachment;
             }
 
-            throw new NewsFeedDeserializerException("Failed recognize jObject as video attachment", _jVideo?.ToString());
+            throw new DeserializerException("Failed recognize jObject as video attachment", _jVideo?.ToString());
         }
 
         private AudioAttachment ParseAudioAttachment(JObject _jAudio)
@@ -348,7 +348,7 @@ namespace VkTools.Serializers
                 return audioAttachments;
             }
 
-            throw new NewsFeedDeserializerException("Failed recognize jObject as audio attachment", _jAudio?.ToString());
+            throw new DeserializerException("Failed recognize jObject as audio attachment", _jAudio?.ToString());
         }
 
         private LinkAttachment ParseLinkAttachment(JObject _jLink)
@@ -365,7 +365,7 @@ namespace VkTools.Serializers
                 return linkAttachment;
             }
 
-            throw new NewsFeedDeserializerException("Failed recognize jObject as link attachment", _jLink?.ToString());
+            throw new DeserializerException("Failed recognize jObject as link attachment", _jLink?.ToString());
         }
     }
 }
