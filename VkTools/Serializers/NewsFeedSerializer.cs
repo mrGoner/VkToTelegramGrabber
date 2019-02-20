@@ -157,9 +157,9 @@ namespace VkTools.Serializers
             return new Views(count);
         }
 
-        private List<AttachmentElement> ParseAttachments(JArray _jAttachments)
+        private List<IAttachmentElement> ParseAttachments(JArray _jAttachments)
         {
-            var attachments = new List<AttachmentElement>();
+            var attachments = new List<IAttachmentElement>();
 
             foreach(JObject jAttachment in _jAttachments)
             {

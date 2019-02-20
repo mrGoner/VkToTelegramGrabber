@@ -3,9 +3,9 @@ using VkTools.ObjectModel.Attachments;
 
 namespace VkTools.ObjectModel.Wall
 {
-    public class Post : NewsFeedElement
+    public class Post : INewsFeedElement
     {
-        public override NewsFeedType Type => NewsFeedType.Post;
+        public NewsFeedType Type => NewsFeedType.Post;
 
         public int SourceId { get; internal set; }
         public int PostId { get; internal set; }
@@ -13,7 +13,7 @@ namespace VkTools.ObjectModel.Wall
         public DateTime Date { get; internal set; }
         public int? SignerId { get; internal set; }
         public bool MarkedAsAds { get; internal set; }
-        public AttachmentElement[] Attachments { get; internal set; }
+        public IAttachmentElement[] Attachments { get; internal set; }
         public PostSource PostSource { get; internal set; }
         public Comments Comments { get; internal set; }
         public Likes Likes { get; internal set; }

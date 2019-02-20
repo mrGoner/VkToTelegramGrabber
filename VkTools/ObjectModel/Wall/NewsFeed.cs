@@ -2,5 +2,5 @@
 
 namespace VkTools.ObjectModel.Wall
 {
-    public class NewsFeed : List<NewsFeedElement> { }
+    public class NewsFeed : List<INewsFeedElement> { }
 }

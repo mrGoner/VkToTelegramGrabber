@@ -5,9 +5,9 @@ namespace VkTools.ObjectModel.Attachments.Photo
     /// <summary>
     /// Photo attachment. For more https://vk.com/dev/objects/photo
     /// </summary>
-    public class PhotoAttachment : AttachmentElement
+    public class PhotoAttachment : IAttachmentElement
     {
-        public override AttachmentElementType Type => AttachmentElementType.Photo;
+        public AttachmentElementType Type => AttachmentElementType.Photo;
 
         public int Id { get; internal set; }
         public int AlbumId { get; internal set; }
@@ -16,5 +16,7 @@ namespace VkTools.ObjectModel.Attachments.Photo
         public string Text { get; internal set; }
         public DateTime Date { get; internal set; }
         public PhotoSizeInfo[] Sizes { get; internal set; }
+
+        public string AccessKey { get; internal set; }
     }
 }

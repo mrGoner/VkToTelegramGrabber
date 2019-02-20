@@ -1,11 +1,13 @@
 ﻿using System;
 namespace VkTools.ObjectModel.Attachments
 {
-    public class UnsupportedAttachment : AttachmentElement
+    public class UnsupportedAttachment : IAttachmentElement
     {
-        public override AttachmentElementType Type => AttachmentElementType.Unsupported;
+        public AttachmentElementType Type => AttachmentElementType.Unsupported;
 
         public string UnSupportedType { get; }
+
+        public string AccessKey => null;
 
         public UnsupportedAttachment(string _type)
         {

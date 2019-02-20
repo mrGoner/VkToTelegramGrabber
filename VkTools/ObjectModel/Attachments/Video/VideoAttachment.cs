@@ -5,9 +5,9 @@ namespace VkTools.ObjectModel.Attachments.Video
     /// <summary>
     /// Video attachment. https://vk.com/dev/objects/video
     /// </summary>
-    public class VideoAttachment : AttachmentElement
+    public class VideoAttachment : IAttachmentElement
     {
-        public override AttachmentElementType Type => AttachmentElementType.Video;
+        public AttachmentElementType Type => AttachmentElementType.Video;
 
         public int Id { get; internal set; }
         public int OwnerId { get; internal set; }
@@ -19,5 +19,7 @@ namespace VkTools.ObjectModel.Attachments.Video
         public int CommentsCount { get; internal set; }
         public string PlayerUrl { get; internal set; }
         public bool IsFavorite { get; internal set; }
+
+        public string AccessKey { get; internal set; }
     }
 }
