@@ -94,11 +94,11 @@ namespace VkTools.Serializers
                 }
                 catch(Exception ex)
                 {
-                    throw new NewsFeedSerializerException("Failed to deserialize newsfeed", ex);
+                    throw new NewsFeedDeserializerException("Failed to deserialize newsfeed", ex);
                 }
             }
 
-            throw new NewsFeedSerializerException("Failed recognize jObject as vk response", _data);
+            throw new NewsFeedDeserializerException("Failed recognize jObject as vk response", _data);
         }
 
         private Post ParsePostItem(JObject _jPostItem)
@@ -286,7 +286,7 @@ namespace VkTools.Serializers
                 return photoAttachment;
             }
 
-            throw new NewsFeedSerializerException("Failed recognize jObject as photo attachment", _jPhoto?.ToString());
+            throw new NewsFeedDeserializerException("Failed recognize jObject as photo attachment", _jPhoto?.ToString());
         }
 
         private DocumentAttachment ParseDocAttachment(JObject _jDoc)
@@ -305,7 +305,7 @@ namespace VkTools.Serializers
                 return docAttachment;
             }
 
-            throw new NewsFeedSerializerException("Failed recognize jObject as document attachment", _jDoc?.ToString());
+            throw new NewsFeedDeserializerException("Failed recognize jObject as document attachment", _jDoc?.ToString());
         }
 
         private VideoAttachment ParseVideoAttachment(JObject _jVideo)
@@ -329,7 +329,7 @@ namespace VkTools.Serializers
                 return videoAttachment;
             }
 
-            throw new NewsFeedSerializerException("Failed recognize jObject as video attachment", _jVideo?.ToString());
+            throw new NewsFeedDeserializerException("Failed recognize jObject as video attachment", _jVideo?.ToString());
         }
 
         private AudioAttachment ParseAudioAttachment(JObject _jAudio)
@@ -348,7 +348,7 @@ namespace VkTools.Serializers
                 return audioAttachments;
             }
 
-            throw new NewsFeedSerializerException("Failed recognize jObject as audio attachment", _jAudio?.ToString());
+            throw new NewsFeedDeserializerException("Failed recognize jObject as audio attachment", _jAudio?.ToString());
         }
 
         private LinkAttachment ParseLinkAttachment(JObject _jLink)
@@ -365,17 +365,7 @@ namespace VkTools.Serializers
                 return linkAttachment;
             }
 
-            throw new NewsFeedSerializerException("Failed recognize jObject as link attachment", _jLink?.ToString());
-        }
-    }
-
-    internal static class EpochTimeConverter
-    {
-        private static readonly DateTime m_startTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Local);
-
-        public static DateTime ConvertToDateTime(int _seconds)
-        {
-            return m_startTime.AddSeconds(_seconds);
+            throw new NewsFeedDeserializerException("Failed recognize jObject as link attachment", _jLink?.ToString());
         }
     }
 }
