@@ -32,7 +32,7 @@ namespace VkTools.Authorization
             if (_permissions.HasFlag(Permissions.Wall))
                 scope += "wall";
 
-            scope.TrimEnd(',');
+            scope = scope.TrimEnd(',');
 
             var url = string.Format(m_urlTemplate, _applicationId, _apiVersion, scope);
 
