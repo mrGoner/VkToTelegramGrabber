@@ -3,7 +3,7 @@ using RestSharp;
 
 namespace VkApi
 {
-    public class RequestExecutor
+    internal class RequestExecutor
     {
         public readonly RestClient m_restClient;
 

@@ -27,24 +27,43 @@ namespace VkApi
 
         public NewsFeed GetNewsFeed(string _userToken, DateTime _start, DateTime _end, string _sourceIds)
         {
-            var request = RequestBuilder.BuildNewsFeedRequest(_userToken, m_currentVkVersion,
-                             _start.ToUniversalTime(), _end.ToUniversalTime(), _sourceIds);
-            var responseData = m_requestExecutor.Execute(request);
+            try
+            {
+                var request = RequestBuilder.BuildNewsFeedRequest(_userToken, m_currentVkVersion,
+                                 _start.ToUniversalTime(), _end.ToUniversalTime(), _sourceIds);
+                var responseData = m_requestExecutor.Execute(request);
 
-            var newsFeed = m_newsFeedDeserializer.Deserialize(responseData);
+                var newsFeed = m_newsFeedDeserializer.Deserialize(responseData);
 
-            return newsFeed;
+                return newsFeed;
+            }
+            catch (Exception ex)
+            {
+                throw new VkException("Failed to get newsfeed", ex);
+            }
         }
 
         public Groups GetGroups(string _userToken, int _count)
         {
-            var request = RequestBuilder.BuildGroupRequest(_userToken, m_currentVkVersion, _count);
+            try
+            {
+                var request = RequestBuilder.BuildGroupRequest(_userToken, m_currentVkVersion, _count);
 
-            var responseData = m_requestExecutor.Execute(request);
+                var responseData = m_requestExecutor.Execute(request);
 
-            var groups = m_groupsDeserializer.Deserialize(responseData);
+                var groups = m_groupsDeserializer.Deserialize(responseData);
 
-            return groups;
+                return groups;
+            }
+            catch (Exception ex)
+            {
+                throw new VkException("Failed to get groups", ex);
+            }
+        }
+
+        public string GetAuthUrl(int _applicationId, Permissions _permissions)
+        {
+            return RequestBuilder.BuildAuthString(_applicationId, _permissions, m_currentVkVersion);
         }
     }
 }
