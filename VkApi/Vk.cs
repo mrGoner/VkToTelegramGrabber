@@ -2,6 +2,7 @@
 using VkApi.Requests;
 using VkTools.Serializers;
 using VkTools.ObjectModel.Wall;
+using VkTools.ObjectModel;
 
 namespace VkApi
 {
@@ -33,6 +34,17 @@ namespace VkApi
             var newsFeed = m_newsFeedDeserializer.Deserialize(responseData);
 
             return newsFeed;
+        }
+
+        public Groups GetGroups(string _userToken, int _count)
+        {
+            var request = RequestBuilder.BuildGroupRequest(_userToken, m_currentVkVersion, _count);
+
+            var responseData = m_requestExecutor.Execute(request);
+
+            var groups = m_groupsDeserializer.Deserialize(responseData);
+
+            return groups;
         }
     }
 }

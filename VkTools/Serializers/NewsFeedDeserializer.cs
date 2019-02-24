@@ -70,6 +70,10 @@ namespace VkTools.Serializers
         public const string PAudioArtist = "artist";
         public const string PLinkDescription = "description";
         public const string PAttachmentAccessKey = "access_key";
+        public const string PCopyHistrory = "copy_history";
+        public const string PHistoryOwnerId = "owner_id";
+        public const string PHistoryFromId = "from_id";
+
         #endregion
 
         public NewsFeed Deserialize(string _data)
@@ -113,15 +117,52 @@ namespace VkTools.Serializers
             post.MarkedAsAds = _jPostItem[PItemMarkedAsAds].Value<int>() != 0;
             post.PostSource = ParsePostSource((JObject)_jPostItem[PPostSource]);
 
-            if (_jPostItem[PAttachments] is JArray jAttachments)
-                post.Attachments = ParseAttachments(jAttachments).ToArray();
+            var attachmentsRaw = _jPostItem[PAttachments];
+            if (attachmentsRaw != null)
+                post.Attachments = ParseAttachments(attachmentsRaw).ToArray();
 
             post.Comments = ParseComments((JObject)_jPostItem[PComments]);
             post.Likes = ParseLikes((JObject)_jPostItem[PLikes]);
             post.Reposts = ParseReposts((JObject)_jPostItem[PReposts]);
             post.Views = ParseViews((JObject)_jPostItem[PViews]);
 
+            var rawHistoryElem = _jPostItem[PCopyHistrory];
+
+            if (rawHistoryElem != null)
+                post.CopyHistory = ParseHistory(rawHistoryElem).ToArray();
+
             return post;
+        }
+
+        private List<HistoryPost> ParseHistory(JToken _jHistory)
+        {
+            if (_jHistory is JArray jCopyHistory)
+            {
+                var historyCollection = new List<HistoryPost>();
+
+                foreach (JObject jHistoryElement in jCopyHistory)
+                {
+                    var historyPost = new HistoryPost();
+
+                    historyPost.Id = jHistoryElement[PId].Value<int>();
+                    historyPost.OwnerId = jHistoryElement[PHistoryOwnerId].Value<int>();
+                    historyPost.FromId = jHistoryElement[PHistoryFromId].Value<int>();
+                    historyPost.Date = EpochTimeConverter.ConvertToDateTime(jHistoryElement[PDate].Value<int>());
+                    historyPost.Text = jHistoryElement[PItemText].Value<string>();
+                    historyPost.PostSource = ParsePostSource((JObject) jHistoryElement[PPostSource]);
+
+                    var attachmentsRaw = jHistoryElement[PAttachments];
+
+                    if (attachmentsRaw != null)
+                        historyPost.Attachments = ParseAttachments(attachmentsRaw).ToArray();
+
+                    historyCollection.Add(historyPost);
+
+                }
+
+                return historyCollection;
+            }
+            throw new DeserializerException("History element not recognized as array", _jHistory?.ToString());
         }
 
         private Comments ParseComments(JObject _jComments)
@@ -178,11 +219,11 @@ namespace VkTools.Serializers
                     default:
                         throw new ArgumentOutOfRangeException($"{rawPlatformType} out of range!");
                 }
-            }
 
-            if (postSource.Type == PostSourceType.Widget || postSource.Type == PostSourceType.Vk)
-            {
-                postSource.Data = _jPostSource[PPostSourceData]?.Value<string>();
+                if (postSource.Type == PostSourceType.Widget || postSource.Type == PostSourceType.Vk)
+                {
+                    postSource.Data = _jPostSource[PPostSourceData]?.Value<string>();
+                }
             }
 
             postSource.Url = _jPostSource[PId]?.Value<string>();
@@ -215,39 +256,43 @@ namespace VkTools.Serializers
             return new Views(count);
         }
 
-        private List<IAttachmentElement> ParseAttachments(JArray _jAttachments)
+        private List<IAttachmentElement> ParseAttachments(JToken _jAttachments)
         {
-            var attachments = new List<IAttachmentElement>();
-
-            foreach(JObject jAttachment in _jAttachments)
+            if (_jAttachments is JArray jAttachments)
             {
-                var attachmentRawType = jAttachment[PAttachmentsType].Value<string>();
+                var attachments = new List<IAttachmentElement>();
 
-                switch (attachmentRawType)
+                foreach (JObject jAttachment in jAttachments)
                 {
-                    case "photo":
-                        attachments.Add(ParsePhotoAttachment(jAttachment));
-                        break;
-                    case "video":
-                        attachments.Add(ParseVideoAttachment(jAttachment));
-                        break;
-                    case "doc":
-                        attachments.Add(ParseDocAttachment(jAttachment));
-                        break;
-                    case "link":
-                        attachments.Add(ParseLinkAttachment(jAttachment));
-                        break;
-                    case "audio":
-                        attachments.Add(ParseAudioAttachment(jAttachment));
-                        break;
-                    default:
-                        attachments.Add(new UnsupportedAttachment(attachmentRawType));
-                        break;
+                    var attachmentRawType = jAttachment[PAttachmentsType].Value<string>();
 
+                    switch (attachmentRawType)
+                    {
+                        case "photo":
+                            attachments.Add(ParsePhotoAttachment(jAttachment));
+                            break;
+                        case "video":
+                            attachments.Add(ParseVideoAttachment(jAttachment));
+                            break;
+                        case "doc":
+                            attachments.Add(ParseDocAttachment(jAttachment));
+                            break;
+                        case "link":
+                            attachments.Add(ParseLinkAttachment(jAttachment));
+                            break;
+                        case "audio":
+                            attachments.Add(ParseAudioAttachment(jAttachment));
+                            break;
+                        default:
+                            attachments.Add(new UnsupportedAttachment(attachmentRawType));
+                            break;
+
+                    }
                 }
-            }
 
-            return attachments;
+                return attachments;
+            }
+            throw new DeserializerException("Failed to recognize attachment token as jArray", _jAttachments?.ToString());
         }
 
         private PhotoAttachment ParsePhotoAttachment(JObject _jPhoto)
@@ -259,7 +304,7 @@ namespace VkTools.Serializers
                 photoAttachment.Id = photoJObj[PId].Value<int>();
                 photoAttachment.AlbumId = photoJObj[PPhotoAlbumId].Value<int>();
                 photoAttachment.OwnerId = photoJObj[PAttachmentOwnerId].Value<int>();
-                photoAttachment.UserId = photoJObj[PPhotoUserId].Value<int>();
+                photoAttachment.UserId = photoJObj[PPhotoUserId]?.Value<int>();
                 photoAttachment.Text = photoJObj[PPhotoText]?.Value<string>();
                 photoAttachment.Date = EpochTimeConverter.ConvertToDateTime(photoJObj[PDate].Value<int>());
                 photoAttachment.AccessKey = photoJObj[PAttachmentAccessKey]?.Value<string>();

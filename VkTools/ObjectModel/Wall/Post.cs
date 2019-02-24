@@ -20,5 +20,6 @@ namespace VkTools.ObjectModel.Wall
         public Reposts Reposts { get; internal set; }
         public Views Views { get; internal set; }
         public bool IsFavorite { get; internal set; }
+        public HistoryPost[] CopyHistory { get; internal set; }
     }
 }
