@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace VkTools.Authorization
+namespace VkApi.Requests
 {
     /// <summary>
     /// Permissions. For more https://vk.com/dev/permissions
