@@ -17,4 +17,8 @@
   <ItemGroup>
     <Folder Include="DataLayer\" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\VkApi\VkApi.csproj" />
+    <ProjectReference Include="..\VkTools\VkTools.csproj" />
+  </ItemGroup>
 </Project>

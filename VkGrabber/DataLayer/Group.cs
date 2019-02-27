@@ -9,6 +9,8 @@ namespace VkGrabber.DataLayer
         public int GroupId { get; set; }
         public DateTime LastUpdateDateTime { get; set; }
         public int LastUpdatedPostId { get; set; }
+        public TimeSpan UpdatePeriod { get; set; }
         public User User { get; set; }
+        public bool IsUpdating { get; set; }
     }
 }

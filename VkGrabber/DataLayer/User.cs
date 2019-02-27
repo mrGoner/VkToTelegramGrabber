@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace VkGrabber.DataLayer
 {
@@ -7,6 +8,7 @@ namespace VkGrabber.DataLayer
         public int Id { get; set; }
         public string Key { get; set; }
         public string Token { get; set; }
+        public TimeSpan UpdatePeriod { get; set; }
         public ICollection<DbGroup> Groups { get; set; }
     }
 }
