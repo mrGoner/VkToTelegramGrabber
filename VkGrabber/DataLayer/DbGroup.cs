@@ -12,5 +12,6 @@ namespace VkGrabber.DataLayer
         public TimeSpan UpdatePeriod { get; set; }
         public User User { get; set; }
         public bool IsUpdating { get; set; }
+        public string GroupName { get; set; }
     }
 }

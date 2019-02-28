@@ -16,6 +16,8 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="DataLayer\" />
+    <Folder Include="Converters\" />
+    <Folder Include="Model\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VkApi\VkApi.csproj" />
