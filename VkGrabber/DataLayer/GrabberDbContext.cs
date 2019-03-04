@@ -2,15 +2,18 @@
 
 namespace VkGrabber.DataLayer
 {
-    internal class GrabberDbContext : DbContext
+    public class GrabberDbContext : DbContext
     {
-        public DbSet<DbUser> Users { get; set; }
-        public DbSet<DbGroup> Groups { get; set; }
+        public DbSet<DbUser> DbUsers { get; set; }
+        public DbSet<DbGroup> DbGroups { get; set; }
 
         public GrabberDbContext()
         {
             Database.EnsureCreated();
+            ChangeTracker.AutoDetectChangesEnabled = true;
+            ChangeTracker.LazyLoadingEnabled = false;
         }
+
 
         protected override void OnConfiguring(DbContextOptionsBuilder _optionsBuilder)
         {

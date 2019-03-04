@@ -73,6 +73,7 @@ namespace VkTools.Serializers
         public const string PCopyHistrory = "copy_history";
         public const string PHistoryOwnerId = "owner_id";
         public const string PHistoryFromId = "from_id";
+        public const string PSourceId = "source_id";
 
         #endregion
 
@@ -109,7 +110,7 @@ namespace VkTools.Serializers
         {
             var post = new Post();
 
-            post.SourceId = _jPostItem[PItemId].Value<int>();
+            post.SourceId = _jPostItem[PSourceId].Value<int>();
             post.Date = EpochTimeConverter.ConvertToDateTime(_jPostItem[PItemDate].Value<int>());
             post.PostId = _jPostItem[PItemId].Value<int>();
             post.Text = _jPostItem[PItemText].Value<string>();

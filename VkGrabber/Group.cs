@@ -4,15 +4,16 @@ namespace VkGrabber
 {
     public class Group
     {
-        public string Prefix { get; }
+        public string Prefix { get; } = "g";
         public int GroupId { get; }
         public TimeSpan UpdatePeriod { get; }
+        public string Name { get; set; }
 
-        public Group(int _groupId, string _prefix, TimeSpan _updatePeriod)
+        public Group(int _groupId, TimeSpan _updatePeriod, string _name)
         {
             GroupId = _groupId;
-            Prefix = _prefix;
             UpdatePeriod = _updatePeriod;
+            Name = _name;
         }
     }
 }

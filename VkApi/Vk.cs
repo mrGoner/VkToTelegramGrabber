@@ -30,7 +30,7 @@ namespace VkApi
             try
             {
                 var request = RequestBuilder.BuildNewsFeedRequest(_userToken, m_currentVkVersion,
-                                 _start.ToUniversalTime(), _end.ToUniversalTime(), _sourceIds);
+                                 _start, _end, _sourceIds);
                 var responseData = m_requestExecutor.Execute(request);
 
                 var newsFeed = m_newsFeedDeserializer.Deserialize(responseData);

@@ -10,7 +10,7 @@ namespace VkGrabber.DataLayer
         public DateTime LastUpdateDateTime { get; set; }
         public int LastUpdatedPostId { get; set; }
         public TimeSpan UpdatePeriod { get; set; }
-        public User User { get; set; }
+        public virtual DbUser DbUser { get; set; }
         public bool IsUpdating { get; set; }
         public string GroupName { get; set; }
     }

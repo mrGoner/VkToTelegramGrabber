@@ -7,16 +7,11 @@ namespace VkGrabber
     public class UserManager
     {
         //подумать про проверку токена
-        public void AddUser(string _token, string _key)
+        public void AddUser(string _key, string _token)
         {
-            if (string.IsNullOrWhiteSpace(_token))
-                throw new ArgumentException("Token can not be null or whitespace!");
-            if (string.IsNullOrWhiteSpace(_key))
-                throw new ArgumentException("Key can not be null or whitespace!");
-
             using (var context = new GrabberDbContext())
             {
-                var existUser = context.Users.FirstOrDefault(_dbUser => _dbUser.Token == _token && _dbUser.Key != _key);
+                var existUser = context.DbUsers.FirstOrDefault(_dbUser => _dbUser.Key == _key);
 
                 if (existUser == null)
                 {
@@ -26,25 +21,29 @@ namespace VkGrabber
                         Key = _key
                     };
 
-                    context.Users.Add(dbUser);
+                    context.DbUsers.Add(dbUser);
+
+                    context.SaveChanges();
                 }
                 else
                     throw new ArgumentException("User already exists!");
-
-                context.SaveChanges();
             }
         }
 
         public User GetUser(string _key)
         {
+            if (string.IsNullOrWhiteSpace(_key))
+                throw new ArgumentException("Key can not be null or white space!", nameof(_key));
+
             using (var context = new GrabberDbContext())
             {
-                var dbUser = context.Users.FirstOrDefault(_user => _user.Key == _key);
+                var dbUser = context.DbUsers.FirstOrDefault(_user => _user.Key == _key);
 
                 if (dbUser != null)
                 {
                     var userGroups =
-                    dbUser.Groups.Select(_dbGroup => new Group(_dbGroup.GroupId, _dbGroup.GroupPrefix, _dbGroup.UpdatePeriod)).ToArray();
+                    context.DbGroups.Where(_dbGroup => _dbGroup.DbUser.Id == dbUser.Id).Select(_dbGroup =>
+                        new Group(_dbGroup.GroupId, _dbGroup.UpdatePeriod, _dbGroup.GroupName)).ToArray();
                     var user = new User(dbUser.Token, dbUser.Key, userGroups);
 
                     return user;
@@ -56,27 +55,35 @@ namespace VkGrabber
 
         public void AddGroupToUser(string _key, Group _group)
         {
+            if (string.IsNullOrWhiteSpace(_key))
+                throw new ArgumentException("Key can not be null or white space!", nameof(_key));
+
             if (_group == null)
                 throw new ArgumentNullException(nameof(_group));
 
             using (var context = new GrabberDbContext())
             {
-                var dbUser = context.Users.FirstOrDefault(_dbUser => _dbUser.Key == _key);
+                var dbUser = context.DbUsers.FirstOrDefault(_dbUser => _dbUser.Key == _key);
 
                 if (dbUser == null)
                     throw new ArgumentException($"User with key {_key} not found!");
 
-                var existedGroup = dbUser.Groups.FirstOrDefault(_dbGroup => _dbGroup.GroupId == _group.GroupId);
+                var existedGroup = context.DbGroups.FirstOrDefault(_dbGroup => 
+                    _dbGroup.GroupId == _group.GroupId && _dbGroup.DbUser.Id == dbUser.Id);
 
                 if (existedGroup == null)
                 {
                     var dbGroup = new DbGroup
                     {
                         GroupId = _group.GroupId,
-                        GroupPrefix = _group.Prefix
+                        GroupPrefix = _group.Prefix,
+                        GroupName = _group.Name,
+                        UpdatePeriod = _group.UpdatePeriod,
+                        DbUser = dbUser,
+                        LastUpdateDateTime = DateTime.Now.ToUniversalTime()
                     };
 
-                    context.Groups.Add(dbGroup);
+                    context.DbGroups.Add(dbGroup);
                 }
                 else
                     throw new ArgumentException($"User already has group with id {_group.GroupId}");
@@ -87,14 +94,20 @@ namespace VkGrabber
 
         public bool RemoveUser(string _key)
         {
+            if (string.IsNullOrWhiteSpace(_key))
+                throw new ArgumentException("Key can not be null or white space!", nameof(_key));
+
             using (var context = new GrabberDbContext())
             {
-                var dbUser = context.Users.FirstOrDefault(_dbUser => _dbUser.Key == _key);
+                var dbUser = context.DbUsers.FirstOrDefault(_dbUser => _dbUser.Key == _key);
 
                 if (dbUser == null)
                     return false;
 
-                context.Users.Remove(dbUser);
+                var userGroups = context.DbGroups.Where(_dbGroup => _dbGroup.DbUser.Id == dbUser.Id).ToArray();
+                context.DbGroups.RemoveRange(userGroups);
+
+                context.DbUsers.Remove(dbUser);
 
                 context.SaveChanges();
 
@@ -106,10 +119,44 @@ namespace VkGrabber
         {
             using (var context = new GrabberDbContext())
             {
-                var users = context.Users.Select(_dbUser => new User(_dbUser.Token, _dbUser.Key,
-                    _dbUser.Groups.Select(_dbGroup => new Group(_dbGroup.GroupId, _dbGroup.GroupPrefix, _dbGroup.UpdatePeriod)).ToArray())).ToArray();
+                var users = context.DbUsers.Select(_dbUser => new User(_dbUser.Token, _dbUser.Key,
+                    context.DbGroups.Where(_dbGroup => _dbGroup.DbUser.Id == _dbUser.Id).Select(_dbGroup =>
+                        new Group(_dbGroup.GroupId, _dbGroup.UpdatePeriod, _dbGroup.GroupName)).ToArray()));
 
-                return users;
+                return users.ToArray();
+            }
+        }
+
+        public bool RemoveGroupFromUser(string _key, Group _group)
+        {
+            if (string.IsNullOrWhiteSpace(_key))
+                throw new ArgumentException("Key can not be null or white space!", nameof(_key));
+
+            if (_group == null)
+                throw new ArgumentNullException(nameof(_group));
+
+            using (var context = new GrabberDbContext())
+            {
+               var dbUser = context.DbUsers.FirstOrDefault(_dbUser => _dbUser.Key == _key);
+
+                if (dbUser != null)
+                {
+                    var dbGroup = context.DbGroups.FirstOrDefault(_dbGroup =>
+                        _dbGroup.GroupPrefix == _group.Prefix && 
+                        _dbGroup.GroupId == _group.GroupId && 
+                        _dbGroup.DbUser.Id == dbUser.Id);
+
+                    if (dbGroup != null)
+                    {
+                        context.DbGroups.Remove(dbGroup);
+
+                        context.SaveChanges();
+
+                        return true;
+                    }
+                }
+
+                return false;
             }
         }
     }
