@@ -91,7 +91,7 @@ namespace VkGrabber
                     {
                         var postsFromGroup = posts.Where(_post => _post.GroupId == group.GroupId).ToList();
 
-                        var lastUpdatedElem = posts.FirstOrDefault(_post => _post.PostId == group.LastUpdatedPostId);
+                         var lastUpdatedElem = posts.FirstOrDefault(_post => _post.PostId == group.LastUpdatedPostId);
 
                         var dbGroup = context.DbGroups.FirstOrDefault(_dbGroup =>
                             _dbGroup.GroupId == group.GroupId && _dbGroup.DbUser.Id == group.DbUser.Id);
@@ -100,7 +100,7 @@ namespace VkGrabber
                         {
                             var index = postsFromGroup.IndexOf(lastUpdatedElem);
 
-                            postsFromGroup.RemoveRange(0, index + 1);
+                            postsFromGroup.RemoveRange(index + 1, postsFromGroup.Count - index - 1);
                             postsFromGroup.ForEach(_post => posts.Remove(_post));
                         }
 
@@ -124,7 +124,7 @@ namespace VkGrabber
             }
             catch(Exception ex)
             {
-                throw ex;
+
             }
         }
     }

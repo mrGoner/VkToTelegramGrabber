@@ -21,9 +21,11 @@ namespace VkGrabber.Converters
 
             var posts = new Posts();
 
-            foreach (var element in _newsFeed)
+            var wall = _newsFeed.Reverse<INewsFeedElement>();
+
+            foreach (var element in wall)
             {
-                if (element is VkTools.ObjectModel.Wall.Post vkPost)
+                if (element is VkTools.ObjectModel.Wall.Post vkPost && !vkPost.MarkedAsAds)
                 {
                     Post post;
 
