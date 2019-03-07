@@ -12,6 +12,7 @@
   <ItemGroup>
     <Compile Remove="Program.cs" />
     <Compile Remove="IUserManager.cs" />
+    <Compile Remove="logger.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="DataLayer\" />
@@ -21,5 +22,13 @@
   <ItemGroup>
     <ProjectReference Include="..\VkApi\VkApi.csproj" />
     <ProjectReference Include="..\VkTools\VkTools.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="logger.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="log4net.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

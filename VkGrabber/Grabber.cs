@@ -6,6 +6,7 @@ using VkApi;
 using System.Timers;
 using VkGrabber.Converters;
 using VkGrabber.Model;
+using static VkGrabber.MyLogger;
 
 namespace VkGrabber
 {
@@ -25,6 +26,7 @@ namespace VkGrabber
             m_updateTimer = new Timer(_updateSpan.TotalMilliseconds);
             m_updateTimer.Elapsed += UpdateTimer_Elapsed;
             m_feedToPostsConverter = new NewsFeedToPostsConverter();
+            Log.Info($"Grabber inited with vk version: {_vkVersion}, updated span: {_updateSpan}");
         }
 
         public void Start()
@@ -73,58 +75,86 @@ namespace VkGrabber
             {
                 var idsList = new List<string>();
 
-                foreach(var dbGroup in _groups)
+                foreach (var dbGroup in _groups)
                 {
                     idsList.Add(Helpers.ConvertGroupToSourceId(dbGroup));
                 }
 
                 var sourceIds = string.Join(',', idsList);
+                Log.Debug($"GetPostFromGroup with params User Id: {_user.Id} " +
+                    $"User key: {_user.Key} from {_start} to {_end} with groups {sourceIds}");
 
-                var newsFeed = m_vkApi.GetNewsFeed(_user.Token, _start, _end, sourceIds);
-
-                var posts = m_feedToPostsConverter.Convert(newsFeed, 
-                    _groups.ToDictionary(_key => _key.GroupId, _value => _value.GroupName));
-
-                using (var context = new GrabberDbContext())
+                try
                 {
-                    foreach (var group in _groups)
+                    var newsFeed = m_vkApi.GetNewsFeed(_user.Token, _start, _end, sourceIds);
+
+                    var posts = m_feedToPostsConverter.Convert(newsFeed,
+                        _groups.ToDictionary(_key => _key.GroupId, _value => _value.GroupName));
+                    Log.Debug($"Getting {posts.Count} posts");
+
+                    using (var context = new GrabberDbContext())
                     {
-                        var postsFromGroup = posts.Where(_post => _post.GroupId == group.GroupId).ToList();
-
-                         var lastUpdatedElem = posts.FirstOrDefault(_post => _post.PostId == group.LastUpdatedPostId);
-
-                        var dbGroup = context.DbGroups.FirstOrDefault(_dbGroup =>
-                            _dbGroup.GroupId == group.GroupId && _dbGroup.DbUser.Id == group.DbUser.Id);
-
-                        if (lastUpdatedElem != null)
+                        foreach (var group in _groups)
                         {
-                            var index = postsFromGroup.IndexOf(lastUpdatedElem);
+                            var dbGroup = context.DbGroups.FirstOrDefault(_dbGroup =>
+                                _dbGroup.GroupId == group.GroupId && _dbGroup.DbUser.Id == group.DbUser.Id);
 
-                            postsFromGroup.RemoveRange(index + 1, postsFromGroup.Count - index - 1);
-                            postsFromGroup.ForEach(_post => posts.Remove(_post));
-                        }
-
-                        if (postsFromGroup.Count > 0)
-                        {
                             if (dbGroup != null)
                             {
-                                dbGroup.LastUpdatedPostId = postsFromGroup.Last().PostId;
+                                var postsFromGroup = posts.Where(_post => _post.GroupId == group.GroupId).ToList();
+
+                                var lastUpdatedElem = posts.FirstOrDefault(_post => _post.PostId == group.LastUpdatedPostId);
+
+                                if (lastUpdatedElem != null)
+                                {
+                                    var index = postsFromGroup.IndexOf(lastUpdatedElem);
+
+                                    postsFromGroup.RemoveRange(index + 1, postsFromGroup.Count - index - 1);
+                                    postsFromGroup.ForEach(_post => posts.Remove(_post));
+                                    Log.Debug("Finded post equals to " +
+                                        $"lastUpdatedPost wiht id {group.LastUpdatedPostId}, cutting completed");
+                                }
+
+                                if (postsFromGroup.Count > 0)
+                                {
+                                    dbGroup.LastUpdatedPostId = postsFromGroup.Last().PostId;
+                                }
+
+                                dbGroup.LastUpdateDateTime = DateTime.Now.ToUniversalTime();
+                                dbGroup.IsUpdating = false;
                             }
+                            else
+                                Log.Error($"Can not find group with id {group.Id}");
+
                         }
 
-                        dbGroup.IsUpdating = false; 
-                        dbGroup.LastUpdateDateTime = DateTime.Now.ToUniversalTime();
-
+                        context.SaveChanges();
                     }
 
-                    context.SaveChanges();
+                    NewDataGrabbedEventHandler?.Invoke(_user.Key, posts);
                 }
+                catch (Exception ex)
+                {
+                    using (var context = new GrabberDbContext())
+                    {
+                        foreach (var group in _groups)
+                        {
+                            var dbGroup = context.DbGroups.FirstOrDefault(_dbGroup =>
+                                _dbGroup.GroupId == group.GroupId && _dbGroup.DbUser.Id == group.DbUser.Id);
 
-                NewDataGrabbedEventHandler?.Invoke(_user.Key, posts);
+                            if (dbGroup != null)
+                                dbGroup.IsUpdating = false;
+                        }
+
+                        context.SaveChanges();
+                    }
+
+                    throw ex;
+                }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-
+                Log.Error("Error, while get posts from group", ex);
             }
         }
     }

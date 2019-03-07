@@ -32,7 +32,7 @@ namespace TelegramBot
             m_telegramBot.StartReceiving();
 
             m_userManager = new UserManager();
-            m_grabber = new Grabber("5.92", TimeSpan.FromMinutes(1));
+            m_grabber = new Grabber("5.92", TimeSpan.FromMinutes(15));
             m_grabber.Start();
             m_vkApi = new Vk("5.92");
 
