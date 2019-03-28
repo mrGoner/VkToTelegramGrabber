@@ -103,7 +103,7 @@ namespace VkTools.Serializers
                 }
             }
 
-            throw new DeserializerException("Failed recognize jObject as vk response", _data);
+            throw new DeserializerException($"Failed recognize jObject as vk response /n {_data}");
         }
 
         private Post ParsePostItem(JObject _jPostItem)
@@ -138,7 +138,7 @@ namespace VkTools.Serializers
             }
             catch(Exception ex)
             {
-                throw new DeserializerException("Failed to parse post item", _jPostItem?.ToString(), ex);
+                throw new InvalidOperationException($"Failed to parse post item \n {_jPostItem?.ToString()}", ex);
             }
         }
 
@@ -174,11 +174,11 @@ namespace VkTools.Serializers
                 }
                 catch(Exception ex)
                 {
-                    throw new DeserializerException("Failed to parse history", _jHistory.ToString(), ex);
+                    throw new InvalidOperationException($"Failed to parse history /n {_jHistory.ToString()}", ex);
                 }
             }
 
-            throw new DeserializerException("History element not recognized as array", _jHistory?.ToString());
+            throw new ArgumentException($"History element not recognized as array /n {_jHistory?.ToString()}");
         }
 
         private Comments ParseComments(JObject _jComments)
@@ -187,13 +187,15 @@ namespace VkTools.Serializers
             {
                 int count = _jComments[PCommentsCount].Value<int>();
                 bool canComment = _jComments[PCommentsCanPost].Value<int>() != 0;
-                bool canGroupsComment = _jComments[PCommentsGroupsCanPost].Value<int>() != 0;
+                var canGroupsCommentRaw = _jComments[PCommentsGroupsCanPost]?.Value<int>();
 
-                return new Comments(count, canComment, canGroupsComment);
+                bool? groupCanComment = canGroupsCommentRaw == null ? null : new bool?(canGroupsCommentRaw != 0);
+
+                return new Comments(count, canComment, groupCanComment);
             }
             catch(Exception ex)
             {
-                throw new DeserializerException("Failed to parse comments", _jComments.ToString(), ex);
+                throw new InvalidOperationException($"Failed to parse comments /n {_jComments.ToString()}", ex);
             }
         }
 
@@ -223,7 +225,8 @@ namespace VkTools.Serializers
                         postSource.Type = PostSourceType.Sms;
                         break;
                     default:
-                        throw new ArgumentOutOfRangeException();
+                        postSource.Type = PostSourceType.Unknown;
+                        break;
                 }
 
                 var rawPlatformType = _jPostSource[PPostSourcePlatform]?.Value<string>();
@@ -242,7 +245,8 @@ namespace VkTools.Serializers
                             postSource.Platfrom = PlatformType.WPhone;
                             break;
                         default:
-                            throw new ArgumentOutOfRangeException($"{rawPlatformType} out of range!");
+                            postSource.Platfrom = PlatformType.Unknown;
+                            break;
                     }
 
                     if (postSource.Type == PostSourceType.Widget || postSource.Type == PostSourceType.Vk)
@@ -257,7 +261,7 @@ namespace VkTools.Serializers
             }
             catch(Exception ex)
             {
-                throw new DeserializerException("Failed to parse post source", _jPostSource.ToString(), ex);
+                throw new InvalidOperationException($"Failed to parse post source /n {_jPostSource.ToString()}", ex);
             }
         }
 
@@ -274,7 +278,7 @@ namespace VkTools.Serializers
             }
             catch(Exception ex)
             {
-                throw new DeserializerException("Failed to parse likes", _jLikes.ToString(), ex);
+                throw new InvalidOperationException($"Failed to parse likes /n {_jLikes.ToString()}", ex);
             }
         }
 
@@ -289,7 +293,7 @@ namespace VkTools.Serializers
             }
             catch(Exception ex)
             {
-                throw new DeserializerException("Failed to parse reposts ", _jReposts.ToString(), ex);
+                throw new InvalidOperationException($"Failed to parse reposts /n {_jReposts.ToString()}", ex);
             }
         }
 
@@ -303,7 +307,7 @@ namespace VkTools.Serializers
             }
             catch(Exception ex)
             {
-                throw new DeserializerException("Failed to parse views", _jViews.ToString(), ex);
+                throw new InvalidOperationException($"Failed to parse views /n {_jViews.ToString()}", ex);
             }
         }
 
@@ -348,10 +352,10 @@ namespace VkTools.Serializers
             }
             catch(Exception ex)
             {
-                throw new DeserializerException("Failed to parse attachments", _jAttachments.ToString(), ex);
+                throw new InvalidOperationException($"Failed to parse attachments /n {_jAttachments.ToString()}", ex);
             }
 
-            throw new DeserializerException("Failed to recognize attachment token as jArray", _jAttachments?.ToString());
+            throw new ArgumentException($"Failed to recognize attachment token as jArray /n {_jAttachments?.ToString()}");
         }
 
         private PhotoAttachment ParsePhotoAttachment(JObject _jPhoto)
@@ -394,10 +398,10 @@ namespace VkTools.Serializers
             }
             catch(Exception ex)
             {
-                throw new DeserializerException("Failed to parse photo attachment", _jPhoto.ToString(), ex);
+                throw new InvalidOperationException($"Failed to parse photo attachment /n {_jPhoto.ToString()}", ex);
             }
 
-            throw new DeserializerException("Failed recognize jObject as photo attachment", _jPhoto?.ToString());
+            throw new ArgumentException($"Failed recognize jObject as photo attachment /n {_jPhoto?.ToString()}");
         }
 
         private DocumentAttachment ParseDocAttachment(JObject _jDoc)
@@ -420,10 +424,10 @@ namespace VkTools.Serializers
             }
             catch(Exception ex)
             {
-                throw new DeserializerException("Failed to parse doc attachment", _jDoc.ToString(), ex);
+                throw new InvalidOperationException($"Failed to parse doc attachment /n {_jDoc.ToString()}", ex);
             }
 
-            throw new DeserializerException("Failed recognize jObject as document attachment", _jDoc?.ToString());
+            throw new DeserializerException($"Failed recognize jObject as document attachment /n {_jDoc?.ToString()}");
         }
 
         private VideoAttachment ParseVideoAttachment(JObject _jVideo)
@@ -451,10 +455,10 @@ namespace VkTools.Serializers
             }
             catch(Exception ex)
             {
-                throw new DeserializerException("Failed to parse video attachment", _jVideo.ToString(), ex);
+                throw new InvalidOperationException($"Failed to parse video attachment /n {_jVideo.ToString()}", ex);
             }
 
-            throw new DeserializerException("Failed recognize jObject as video attachment", _jVideo?.ToString());
+            throw new ArgumentException($"Failed recognize jObject as video attachment /n {_jVideo?.ToString()}");
         }
 
         private AudioAttachment ParseAudioAttachment(JObject _jAudio)
@@ -477,10 +481,10 @@ namespace VkTools.Serializers
             }
             catch(Exception ex)
             {
-                throw new DeserializerException("Failed to parse audio attachment", _jAudio.ToString(), ex);
+                throw new InvalidOperationException($"Failed to parse audio attachment /n {_jAudio.ToString()}", ex);
             }
 
-            throw new DeserializerException("Failed recognize jObject as audio attachment", _jAudio?.ToString());
+            throw new ArgumentException($"Failed recognize jObject as audio attachment /n {_jAudio?.ToString()}");
         }
 
         private LinkAttachment ParseLinkAttachment(JObject _jLink)
@@ -501,10 +505,10 @@ namespace VkTools.Serializers
             }
             catch(Exception ex)
             {
-                throw new DeserializerException("Failed to parse link attachment", _jLink.ToString(), ex);
+                throw new InvalidOperationException($"Failed to parse link attachment /n {_jLink.ToString()}", ex);
             }
 
-            throw new DeserializerException("Failed recognize jObject as link attachment", _jLink?.ToString());
+            throw new ArgumentException($"Failed recognize jObject as link attachment /n {_jLink?.ToString()}");
         }
     }
 }

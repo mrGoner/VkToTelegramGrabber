@@ -6,6 +6,7 @@
         Api,
         Widget,
         Rss,
-        Sms
+        Sms,
+        Unknown
     }
 }

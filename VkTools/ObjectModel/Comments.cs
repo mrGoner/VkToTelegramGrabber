@@ -7,9 +7,9 @@
     {
         public int Count { get; }
         public bool CanPost { get; }
-        public bool GroupCanPost { get; }
+        public bool? GroupCanPost { get; }
 
-        public Comments(int _count, bool _canPost, bool _groupCanPost)
+        public Comments(int _count, bool _canPost, bool? _groupCanPost)
         {
             Count = _count;
             CanPost = _canPost;

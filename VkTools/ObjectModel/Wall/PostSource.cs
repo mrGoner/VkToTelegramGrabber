@@ -15,6 +15,7 @@
     {
         Android,
         Iphone,
-        WPhone
+        WPhone,
+        Unknown
     }
 }

@@ -73,11 +73,11 @@ namespace VkTools.Serializers
                 }
                 catch (Exception ex)
                 {
-                    throw new DeserializerException("Failed to deserialize groups", ex);
+                    throw new DeserializerException($"Failed to deserialize groups /n {jGroups.ToString()}", ex);
                 }
             }
 
-            throw new DeserializerException("Failed parse data as group response!", _data);
+            throw new DeserializerException($"Failed parse data as group response! /n {_data}");
         }
     }
 }
