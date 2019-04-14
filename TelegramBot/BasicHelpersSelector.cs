@@ -4,30 +4,31 @@ using System.Linq;
 
 namespace TelegramBot
 {
-    public partial class Bot
+    public class BasicHelpersSelector : IUserHelperSelector
     {
-        public class BasicHelpersSelector : IUserHelperSelector
+        private readonly List<IUserHelper> m_helpers;
+        private readonly IUserHelper m_defaultHelper;
+
+        public BasicHelpersSelector(List<IUserHelper> _helpers)
         {
-            private readonly List<IUserHelper> m_helpers;
+            m_helpers = _helpers ?? throw new ArgumentNullException(nameof(_helpers));
+            m_defaultHelper = new UserInfoHelper();
+        }
 
-            public BasicHelpersSelector(List<IUserHelper> _helpers)
-            {
-                m_helpers = _helpers ?? throw new ArgumentNullException(nameof(_helpers));
-            }
+        public IUserHelper DefaultHelper => m_defaultHelper;
 
-            public bool TryGetCompatibleHelper(string _command, out IUserHelper _helper)
-            {
-                _helper = null;
+        public bool TryGetCompatibleHelper(string _command, out IUserHelper _helper)
+        {
+            _helper = null;
 
-                var type = m_helpers.FirstOrDefault(_h => _h.Command == _command)?.GetType();
+            var type = m_helpers.FirstOrDefault(_h => _h.Command == _command)?.GetType();
 
-                if (type == null)
-                    return false;
+            if (type == null)
+                return false;
 
-                _helper = (IUserHelper)Activator.CreateInstance(type);
+            _helper = (IUserHelper)Activator.CreateInstance(type);
 
-                return true;
-            }
+            return true;
         }
     }
 }

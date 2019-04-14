@@ -13,7 +13,7 @@ using VkGrabber.Model;
 
 namespace TelegramBot
 {
-    public partial class Bot
+    public class Bot
     {
         private readonly TelegramBotClient m_telegramBot;
         public readonly UserManager m_userManager;
