@@ -15,7 +15,7 @@ namespace VkGrabber
         private readonly Processor m_processor;
         public delegate void NewDataGrabbed(string _userKey, Posts _posts);
         public event NewDataGrabbed NewDataGrabbedEventHandler;
-        private Vk m_vkApi;
+        private readonly Vk m_vkApi;
         private readonly Timer m_updateTimer;
         private readonly NewsFeedToPostsConverter m_feedToPostsConverter;
 
