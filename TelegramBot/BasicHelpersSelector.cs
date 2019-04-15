@@ -1,21 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using TelegramBot.UserHelpers;
 
 namespace TelegramBot
 {
     public class BasicHelpersSelector : IUserHelperSelector
     {
         private readonly List<IUserHelper> m_helpers;
-        private readonly IUserHelper m_defaultHelper;
 
-        public BasicHelpersSelector(List<IUserHelper> _helpers)
+        public BasicHelpersSelector(List<IUserHelper> _helpers, IDefaultHelper _defaultHelper)
         {
             m_helpers = _helpers ?? throw new ArgumentNullException(nameof(_helpers));
-            m_defaultHelper = new UserInfoHelper();
+            DefaultHelper = _defaultHelper ?? throw new ArgumentNullException(nameof(_defaultHelper));
         }
 
-        public IUserHelper DefaultHelper => m_defaultHelper;
+        public IDefaultHelper DefaultHelper { get; }
 
         public bool TryGetCompatibleHelper(string _command, out IUserHelper _helper)
         {

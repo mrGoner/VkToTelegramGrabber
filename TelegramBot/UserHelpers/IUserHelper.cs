@@ -1,7 +1,7 @@
 ﻿using VkGrabber;
 using VkApi;
 
-namespace TelegramBot
+namespace TelegramBot.UserHelpers
 {
     public delegate void WorkComplete(long _key);
 

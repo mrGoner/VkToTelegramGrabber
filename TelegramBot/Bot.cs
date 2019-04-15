@@ -7,9 +7,9 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.InputFiles;
 using System.Linq;
 using VkGrabber;
-using Telegram.Bot.Types.ReplyMarkups;
 using VkApi;
 using VkGrabber.Model;
+using TelegramBot.UserHelpers;
 
 namespace TelegramBot
 {
@@ -22,20 +22,19 @@ namespace TelegramBot
         private readonly Dictionary<long, IUserHelper> m_registeredHelpers;
         private readonly IUserHelperSelector m_helperSelector;
 
-        public Bot(string _token, IWebProxy _proxy = null)
+        public Bot(string _token, IUserHelperSelector _helperSelector, IWebProxy _proxy = null)
         {
             m_telegramBot = new TelegramBotClient(_token, _proxy);
             m_registeredHelpers = new Dictionary<long, IUserHelper>();
-            m_helperSelector = new BasicHelpersSelector(new List<IUserHelper>
+            m_helperSelector = _helperSelector ??
+                new BasicHelpersSelector(new List<IUserHelper>
             {
                 new UserRegisterHelper(),
                 new UserManagementHelper()
-            });
+            },
+            new UserInfoHelper());
 
             m_telegramBot.OnMessage += TelegramBot_OnMessage;
-            m_telegramBot.OnUpdate += TelegramBot_OnUpdate;
-
-            m_telegramBot.StartReceiving();
 
             m_userManager = new UserManager();
             m_grabber = new Grabber("5.92", TimeSpan.FromMinutes(15));
@@ -43,14 +42,11 @@ namespace TelegramBot
             m_vkApi = new Vk("5.92");
 
             m_grabber.NewDataGrabbedEventHandler += Grabber_NewDataGrabbedEventHandler;
+
+            m_telegramBot.StartReceiving();
         }
 
-        void TelegramBot_OnUpdate(object sender, UpdateEventArgs e)
-        {
-
-        }
-
-        void Grabber_NewDataGrabbedEventHandler(string _userKey, Posts _posts)
+        private void Grabber_NewDataGrabbedEventHandler(string _userKey, Posts _posts)
         {
             foreach(var post in _posts)
             {
@@ -121,6 +117,13 @@ namespace TelegramBot
                         newHelper.WorkCompleteEventHandler += OnHelperWorkDone;
                         m_registeredHelpers.Add(_e.Message.Chat.Id, newHelper);
                     }
+                    else
+                    {
+                        m_telegramBot.SendTextMessageAsync(_e.Message.Chat.Id,
+                            m_helperSelector.DefaultHelper.GetDefaultResponce().ReplyMessage);
+
+                        return;
+                    }
                 }
 
                 if (m_registeredHelpers.ContainsKey(_e.Message.Chat.Id))
@@ -140,28 +143,6 @@ namespace TelegramBot
             var helper = m_registeredHelpers.FirstOrDefault(_x => _x.Key == _userKey);
 
             m_registeredHelpers.Remove(helper.Key);
-        }
-
-        internal InlineKeyboardButton[][] GetInlineKeyboard(string[] stringArray)
-        {
-            var keyboardInline = new InlineKeyboardButton[1][];
-            var keyboardButtons = new InlineKeyboardButton[stringArray.Length];
-            for (var i = 0; i < stringArray.Length; i++)
-            {
-                keyboardButtons[i] = new InlineKeyboardButton
-                {
-                    Text = stringArray[i],
-                    CallbackData = "some data"
-                };
-            }
-            keyboardInline[0] = keyboardButtons;
-            return keyboardInline;
-        }
-
-        public class CallBackData
-        {
-            public string Operation { get; }
-            public int MessageId { get; }
         }
     }
 }

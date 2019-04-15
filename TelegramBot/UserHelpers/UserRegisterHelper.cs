@@ -2,7 +2,7 @@
 using VkGrabber;
 using VkApi;
 
-namespace TelegramBot
+namespace TelegramBot.UserHelpers
 {
     public class UserRegisterHelper : IUserHelper
     {

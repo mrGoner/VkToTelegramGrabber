@@ -1,9 +1,11 @@
-﻿namespace TelegramBot
+﻿using TelegramBot.UserHelpers;
+
+namespace TelegramBot
 {
     public interface IUserHelperSelector
     {
         bool TryGetCompatibleHelper(string _command, out IUserHelper _helper);
 
-        IUserHelper DefaultHelper { get; }
+        IDefaultHelper DefaultHelper { get; }
     }
 }

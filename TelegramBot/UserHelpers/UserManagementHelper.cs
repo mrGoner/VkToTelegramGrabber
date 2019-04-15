@@ -7,7 +7,7 @@ using VkTools.ObjectModel;
 using Group = VkTools.ObjectModel.Group;
 using System.Linq;
 
-namespace TelegramBot
+namespace TelegramBot.UserHelpers
 {
     public class UserManagementHelper : IUserHelper
     {
@@ -30,7 +30,7 @@ namespace TelegramBot
             m_vkApi = _vkApi ?? throw new ArgumentNullException(nameof(_vkApi));
             m_userManager = _userManager ?? throw new ArgumentNullException(nameof(_userManager));
             m_userId = _userId;
-            m_generalMarkup = GetInlineKeyboard(new string[] { "Добавить группу", "Удалить группу" });
+            m_generalMarkup = KeyBoardBuilder.BuildMarkupKeyboard(new string[] { "Добавить группу", "Удалить группу" });
         }
 
         public Response OnCallBackUpdate()
@@ -55,6 +55,14 @@ namespace TelegramBot
                 builder.AppendLine("Пришли мне ID группы для добавления из списка ниже");
 
                 m_rawGroups = m_vkApi.GetGroups(user.Token, 100);
+
+                foreach(var userGroup in user.Groups)
+                {
+                    var existed = m_rawGroups.FirstOrDefault(_rawGroup => _rawGroup.Id == userGroup.GroupId);
+
+                    if (existed != null)
+                        m_rawGroups.Remove(existed);
+                }
 
                 for (int i = 0; i < m_rawGroups.Count; i++)
                 {
@@ -98,31 +106,27 @@ namespace TelegramBot
             {
                 m_waitingGroupRemove = false;
 
-                if (int.TryParse(_message, out var removeIndex) && user.Groups.Length >= removeIndex)
+                if (int.TryParse(_message, out var removeIndex) && removeIndex >= 0  && user.Groups.Length -1 >= removeIndex)
                 {
                     m_userManager.RemoveGroupFromUser(user.Key, user.Groups[removeIndex]);
 
-                    return new Response("Удалено!");
+                    return new Response("Удалено!", m_generalMarkup);
                 }
-
-                return new Response("Некорректный индекс!", m_generalMarkup);
             }
 
             if (m_waitingGroupNum)
             {
                 m_waitingGroupNum = false;
 
-                if (int.TryParse(_message, out var groupNum) && m_rawGroups.Count >= groupNum)
+                if (int.TryParse(_message, out var groupNum) && groupNum >= 0 &&  m_rawGroups.Count - 1 >= groupNum)
                 {
                     m_selectedGroup = m_rawGroups[groupNum];
 
                     m_waitingGroupPeriod = true;
 
                     return new Response("Почти все! Выбери период обновления",
-                        GetInlineKeyboard(new string[] { "00:15:00", "00:30:00", "01:00:00", "01:30:00", "02:00:00" }));
+                        KeyBoardBuilder.BuildMarkupKeyboard(new string[] { "00:15:00", "00:30:00", "01:00:00", "01:30:00", "02:00:00" }));
                 }
-
-                return new Response("Некорректный ID группы", m_generalMarkup);
             }
 
             if (m_waitingGroupPeriod)
@@ -135,29 +139,13 @@ namespace TelegramBot
                     m_userManager.AddGroupToUser(user.Key,
                         new VkGrabber.Group(m_selectedGroup.Id, span, m_selectedGroup.Name));
 
-                    return new Response("Добавлено!");
+                    return new Response("Добавлено!", m_generalMarkup);
                 }
 
                 return new Response("Некорректный период обновления!", m_generalMarkup);
             }
 
-            return null;
-        }
-
-        internal IReplyMarkup GetInlineKeyboard(string[] stringArray)
-        {
-            var keyboardButtons = new KeyboardButton[stringArray.Length];
-            for (var i = 0; i < stringArray.Length; i++)
-            {
-                keyboardButtons[i] = new KeyboardButton
-                {
-                    Text = stringArray[i]
-                };
-            }
-
-            var keyboardInline = new ReplyKeyboardMarkup(keyboardButtons, true);
-
-            return keyboardInline;
+            return new Response("Некорректный запрос!", m_generalMarkup);
         }
     }
 }
