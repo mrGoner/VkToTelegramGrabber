@@ -112,6 +112,8 @@ namespace TelegramBot.UserHelpers
 
                     return new Response("Удалено!", m_generalMarkup);
                 }
+
+                return new Response("Некорректный ID", m_generalMarkup);
             }
 
             if (m_waitingGroupNum)
@@ -127,6 +129,8 @@ namespace TelegramBot.UserHelpers
                     return new Response("Почти все! Выбери период обновления",
                         KeyBoardBuilder.BuildMarkupKeyboard(new string[] { "00:15:00", "00:30:00", "01:00:00", "01:30:00", "02:00:00" }));
                 }
+
+                return new Response("Некорректный ID", m_generalMarkup);
             }
 
             if (m_waitingGroupPeriod)
@@ -145,7 +149,7 @@ namespace TelegramBot.UserHelpers
                 return new Response("Некорректный период обновления!", m_generalMarkup);
             }
 
-            return new Response("Некорректный запрос!", m_generalMarkup);
+            return null;
         }
     }
 }

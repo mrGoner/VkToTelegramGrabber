@@ -1,7 +1,7 @@
 ﻿namespace TelegramBot.UserHelpers
 {
 
-    public class UserInfoHelper : IDefaultHelper
+    public class DefaultHelper : IDefaultHelper
     {
         public Response GetDefaultResponce()
         {

@@ -30,9 +30,10 @@ namespace TelegramBot
                 new BasicHelpersSelector(new List<IUserHelper>
             {
                 new UserRegisterHelper(),
-                new UserManagementHelper()
+                new UserManagementHelper(),
+                new InfoHelper()
             },
-            new UserInfoHelper());
+            new DefaultHelper());
 
             m_telegramBot.OnMessage += TelegramBot_OnMessage;
 
