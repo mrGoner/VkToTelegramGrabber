@@ -18,6 +18,7 @@ namespace VkGrabber
         private readonly Vk m_vkApi;
         private readonly Timer m_updateTimer;
         private readonly NewsFeedToPostsConverter m_feedToPostsConverter;
+        private readonly PostComparer m_postComparer = new PostComparer();
 
         public Grabber(string _vkVersion, TimeSpan _updateSpan)
         {
@@ -73,14 +74,10 @@ namespace VkGrabber
         {
             try
             {
-                var idsList = new List<string>();
-
-                foreach (var dbGroup in _groups)
-                {
-                    idsList.Add(Helpers.ConvertGroupToSourceId(dbGroup));
-                }
+                var idsList = _groups.Select(Helpers.ConvertGroupToSourceId).ToArray();
 
                 var sourceIds = string.Join(',', idsList);
+
                 Log.Debug($"GetPostFromGroup with params User Id: {_user.Id} " +
                     $"User key: {_user.Key} from {_start} to {_end} with groups {sourceIds}");
 
@@ -90,6 +87,7 @@ namespace VkGrabber
 
                     var posts = m_feedToPostsConverter.Convert(newsFeed,
                         _groups.ToDictionary(_key => _key.GroupId, _value => _value.GroupName));
+
                     Log.Debug($"Getting {posts.Count} posts");
 
                     using (var context = new GrabberDbContext())
@@ -103,14 +101,18 @@ namespace VkGrabber
                             {
                                 var postsFromGroup = posts.Where(_post => _post.GroupId == group.GroupId).ToList();
 
-                                var lastUpdatedElem = posts.FirstOrDefault(_post => _post.PostId == group.LastUpdatedPostId);
+                                postsFromGroup.Sort(m_postComparer);
+
+                                var lastUpdatedElem = postsFromGroup.FirstOrDefault(_post => _post.PostId == group.LastUpdatedPostId);
 
                                 if (lastUpdatedElem != null)
                                 {
                                     var index = postsFromGroup.IndexOf(lastUpdatedElem);
 
-                                    postsFromGroup.RemoveRange(index + 1, postsFromGroup.Count - index - 1);
-                                    postsFromGroup.ForEach(_post => posts.Remove(_post));
+                                    postsFromGroup.Take(index + 1).ToList().ForEach(_post => posts.Remove(_post));
+
+                                    postsFromGroup = postsFromGroup.Skip(index + 1).Take(postsFromGroup.Count - index + 1).ToList();
+
                                     Log.Debug("Finded post equals to " +
                                         $"lastUpdatedPost wiht id {group.LastUpdatedPostId}, cutting completed");
                                 }
@@ -155,6 +157,14 @@ namespace VkGrabber
             catch (Exception ex)
             {
                 Log.Error("Error, while get posts from group", ex);
+            }
+        }
+
+        class PostComparer : IComparer<Post>
+        {
+            public int Compare(Post _x, Post _y)
+            {
+                return _x.PublishTime.CompareTo(_y);
             }
         }
     }

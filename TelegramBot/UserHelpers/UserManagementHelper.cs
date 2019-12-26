@@ -33,11 +33,6 @@ namespace TelegramBot.UserHelpers
             m_generalMarkup = KeyBoardBuilder.BuildMarkupKeyboard(new string[] { "Добавить группу", "Удалить группу" });
         }
 
-        public Response OnCallBackUpdate()
-        {
-            throw new NotImplementedException();
-        }
-
         public Response OnMessage(string _message)
         {
             var user = m_userManager.GetUser(m_userId.ToString());

@@ -9,7 +9,6 @@ namespace TelegramBot.UserHelpers
     {
         string Command { get; }
         event WorkComplete WorkCompleteEventHandler;
-        Response OnCallBackUpdate();
         Response OnMessage(string _message);
         void Init(long _userId, Vk _vkApi, UserManager _userManager);
     }

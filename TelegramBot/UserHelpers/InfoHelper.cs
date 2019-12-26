@@ -17,11 +17,6 @@ namespace TelegramBot.UserHelpers
             m_userId = _userId;
         }
 
-        public Response OnCallBackUpdate()
-        {
-            throw new NotImplementedException();
-        }
-
         public Response OnMessage(string _message)
         {
             WorkCompleteEventHandler?.Invoke(m_userId);

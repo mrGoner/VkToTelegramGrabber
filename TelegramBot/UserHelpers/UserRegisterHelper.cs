@@ -16,11 +16,6 @@ namespace TelegramBot.UserHelpers
 
         public event WorkComplete WorkCompleteEventHandler;
 
-        public Response OnCallBackUpdate()
-        {
-            return null;
-        }
-
         public Response OnMessage(string _message)
         {
             if (_message == Command)

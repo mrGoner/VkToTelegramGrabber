@@ -21,6 +21,9 @@ namespace TelegramBot
         private readonly Vk m_vkApi;
         private readonly Dictionary<long, IUserHelper> m_registeredHelpers;
         private readonly IUserHelperSelector m_helperSelector;
+        private readonly string m_botName;
+        private const string m_apiVersion = "5.92";
+        private readonly MessageQueue m_messageQueue;
 
         public Bot(string _token, IUserHelperSelector _helperSelector, IWebProxy _proxy = null)
         {
@@ -38,11 +41,16 @@ namespace TelegramBot
             m_telegramBot.OnMessage += TelegramBot_OnMessage;
 
             m_userManager = new UserManager();
-            m_grabber = new Grabber("5.92", TimeSpan.FromMinutes(15));
+            m_grabber = new Grabber(m_apiVersion, TimeSpan.FromMinutes(15));
             m_grabber.Start();
-            m_vkApi = new Vk("5.92");
+            m_vkApi = new Vk(m_apiVersion);
+            m_messageQueue = new MessageQueue(TimeSpan.FromSeconds(2), 4, SendMessage);
 
             m_grabber.NewDataGrabbedEventHandler += Grabber_NewDataGrabbedEventHandler;
+
+            m_botName = m_telegramBot.GetMeAsync().Result.Username;
+
+            Console.WriteLine($"Bot name: {m_botName}");
 
             m_telegramBot.StartReceiving();
         }
@@ -51,60 +59,76 @@ namespace TelegramBot
         {
             foreach(var post in _posts)
             {
-                var text = string.Format("Группа: {0} \n \n {1}", post.GroupName, post.Text);
+                m_messageQueue.AddMessage(new Message(long.Parse(_userKey), post));
+            }
+        }
 
-                if (!post.Items.Any())
-                    m_telegramBot.SendTextMessageAsync(int.Parse(_userKey), text);
+        private void SendMessage(long _userId, Post _post)
+        {
+            if (_post is null)
+                throw new ArgumentNullException(nameof(_post));
+
+            var text = string.Format("Группа: {0} \n \n {1}", _post.GroupName, _post.Text);
+
+            if (!_post.Items.Any())
+                m_telegramBot.SendTextMessageAsync(_userId, text);
+            else
+            {
+                if (_post.Items.Length == 1)
+                {
+                    switch (_post.Items.First())
+                    {
+                        case ImageItem imageItem:
+                            m_telegramBot.SendPhotoAsync(_userId, new InputOnlineFile(imageItem.UrlMedium ?? imageItem.UrlSmall), text);
+                            break;
+                        case VideoItem videoItem:
+                            m_telegramBot.SendVideoAsync(_userId, new InputOnlineFile(videoItem.Url), caption: text);
+                            break;
+                        case DocumentItem documentItem:
+                            m_telegramBot.SendDocumentAsync(_userId, new InputOnlineFile(documentItem.Url), $"{text}/n{documentItem.Title}");
+                            break;
+                        case LinkItem linkItem:
+                            m_telegramBot.SendTextMessageAsync(_userId, $"{text}/n{linkItem.Url}");
+                            break;
+                    }
+                }
                 else
                 {
-                    if (post.Items.Length == 1)
+                    m_telegramBot.SendTextMessageAsync(_userId, text);
+
+                    var media = new List<IAlbumInputMedia>();
+
+                    foreach (var postItem in _post.Items)
                     {
-                        switch (post.Items.First())
+                        switch (postItem)
                         {
                             case ImageItem imageItem:
-                                m_telegramBot.SendPhotoAsync(int.Parse(_userKey), new InputOnlineFile(imageItem.UrlMedium ?? imageItem.UrlSmall), text);
+                                media.Add(new InputMediaPhoto(
+                                    new InputMedia(imageItem.UrlLarge ?? imageItem.UrlMedium ?? imageItem.UrlSmall)));
                                 break;
                             case VideoItem videoItem:
-                                m_telegramBot.SendVideoAsync(int.Parse(_userKey), new InputOnlineFile(videoItem.Url), caption: text);
+                                if (string.IsNullOrEmpty(videoItem.Url))
+                                    media.Add(new InputMediaVideo(new InputMedia(videoItem.Url)));
                                 break;
                         }
                     }
-                    else
-                    {
-                        m_telegramBot.SendTextMessageAsync(int.Parse(_userKey), text);
-
-                        var list = new List<IAlbumInputMedia>();
-
-                        foreach (var postItem in post.Items)
-                        {
-                            switch (postItem)
-                            {
-                                case ImageItem imageItem:
-                                    list.Add(new InputMediaPhoto(new InputMedia(imageItem.UrlMedium ?? imageItem.UrlSmall)));
-                                    break;
-                                case VideoItem videoItem:
-                                    if (string.IsNullOrEmpty(videoItem.Url))
-                                        list.Add(new InputMediaVideo(new InputMedia(videoItem.Url)));
-                                    break;
-                            }
-                        }
-                        if (list.Any())
-                            m_telegramBot.SendMediaGroupAsync(list, int.Parse(_userKey));
-                    }
+                    if (media.Any())
+                        m_telegramBot.SendMediaGroupAsync(media, _userId);
                 }
             }
         }
 
         private void TelegramBot_OnMessage(object _sender, MessageEventArgs _e)
         {
-            Console.WriteLine(_e.Message.Chat.Id);
-
             var message = _e.Message.Text?.Trim();
 
             if (!string.IsNullOrWhiteSpace(message))
             {
                 if (message.StartsWith("/", StringComparison.Ordinal))
                 {
+                    if (message.Contains($"@{m_botName}"))
+                        message = message.Replace($"@{m_botName}", "");
+
                     if (m_registeredHelpers.TryGetValue(_e.Message.Chat.Id, out var helper))
                     {
                         helper.WorkCompleteEventHandler -= OnHelperWorkDone;
@@ -131,7 +155,7 @@ namespace TelegramBot
                 {
                     var helper = m_registeredHelpers[_e.Message.Chat.Id];
 
-                    var response = helper.OnMessage(_e.Message.Text);
+                    var response = helper.OnMessage(message);
 
                     if (response != null)
                         m_telegramBot.SendTextMessageAsync(_e.Message.Chat.Id, response.ReplyMessage, replyMarkup: response.ReplyMarkup);
