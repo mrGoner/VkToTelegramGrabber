@@ -8,6 +8,7 @@ namespace VkApi.Requests
         private const string m_groupTemplate = "groups.get?extended=1&offset={0}&access_token={1}&v={2}&count={3}";
         private const string m_newsFeedTemplate = "newsfeed.get?filters=post&access_token={0}&v={1}&start_time={2}&end_time={3}&source_ids={4}&count={5}";
         private const string m_urlTemplate = "https://oauth.vk.com/authorize?client_id={0}&display=page&redirect_uri=https://oauth.vk.com/blank.html&response_type=token&v={1}&scope={2}";
+        private const string m_getVideoTemplate = "video.get?extended=0&videos={0}&access_token={1}&v={2}&count={3}";
 
         public static string BuildGroupRequest(string _token, string _apiVersion, int count, int offset = 0)
         {
@@ -41,6 +42,20 @@ namespace VkApi.Requests
                             _apiVersion, epochStartTime, epochEndTime, _sourceIds, _count);
 
             return newsfeedRequest;
+        }
+
+        public static string BuildGetVideoRequest(string _token, string _apiVersion, int _ownerId, int _videoId)
+        {
+            if (string.IsNullOrWhiteSpace(_token))
+                throw new ArgumentException("Token can not be null or empty!");
+
+            if (string.IsNullOrWhiteSpace(_apiVersion))
+                throw new ArgumentException("Api version can not be null or empty!");
+
+            var video = $"{_ownerId}_{_videoId}";
+            var videoRequest = string.Format(m_getVideoTemplate, video, _token, _apiVersion, 1);
+
+            return videoRequest;
         }
 
 

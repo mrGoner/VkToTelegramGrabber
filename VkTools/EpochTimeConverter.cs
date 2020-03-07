@@ -6,16 +6,16 @@ namespace VkTools
     {
         private static readonly DateTime m_startTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        public static DateTime ConvertToDateTime(int _seconds)
+        public static DateTime ConvertToDateTime(long _seconds)
         {
             return m_startTime.AddSeconds(_seconds);
         }
 
-        public static int ConvertFromDateTime(DateTime _dateTime)
+        public static long ConvertFromDateTime(DateTime _dateTime)
         {
             var span = _dateTime - m_startTime;
 
-            var seconds = (int) span.TotalSeconds;
+            var seconds = (long) span.TotalSeconds;
 
             return seconds;
         }

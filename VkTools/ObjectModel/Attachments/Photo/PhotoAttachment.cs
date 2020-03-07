@@ -15,7 +15,7 @@ namespace VkTools.ObjectModel.Attachments.Photo
         public int? UserId { get; internal set; }
         public string Text { get; internal set; }
         public DateTime Date { get; internal set; }
-        public PhotoSizeInfo[] Sizes { get; internal set; }
+        public PhotoSizeInfo[] Sizes { get; internal set; } = new PhotoSizeInfo[0];
 
         public string AccessKey { get; internal set; }
     }

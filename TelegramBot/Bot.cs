@@ -22,7 +22,7 @@ namespace TelegramBot
         private readonly Dictionary<long, IUserHelper> m_registeredHelpers;
         private readonly IUserHelperSelector m_helperSelector;
         private readonly string m_botName;
-        private const string m_apiVersion = "5.92";
+        private const string m_apiVersion = "5.103";
         private readonly MessageQueue m_messageQueue;
 
         public Bot(string _token, IUserHelperSelector _helperSelector, IWebProxy _proxy = null)
@@ -44,7 +44,7 @@ namespace TelegramBot
             m_grabber = new Grabber(m_apiVersion, TimeSpan.FromMinutes(15));
             m_grabber.Start();
             m_vkApi = new Vk(m_apiVersion);
-            m_messageQueue = new MessageQueue(TimeSpan.FromSeconds(2), 4, SendMessage);
+            m_messageQueue = new MessageQueue(TimeSpan.FromSeconds(7), 4, SendMessage);
 
             m_grabber.NewDataGrabbedEventHandler += Grabber_NewDataGrabbedEventHandler;
 
@@ -82,13 +82,13 @@ namespace TelegramBot
                             m_telegramBot.SendPhotoAsync(_userId, new InputOnlineFile(imageItem.UrlMedium ?? imageItem.UrlSmall), text);
                             break;
                         case VideoItem videoItem:
-                            m_telegramBot.SendVideoAsync(_userId, new InputOnlineFile(videoItem.Url), caption: text);
+                            m_telegramBot.SendTextMessageAsync(_userId, $"{text}\n{videoItem.Url}");
                             break;
                         case DocumentItem documentItem:
-                            m_telegramBot.SendDocumentAsync(_userId, new InputOnlineFile(documentItem.Url), $"{text}/n{documentItem.Title}");
+                            m_telegramBot.SendDocumentAsync(_userId, new InputOnlineFile(documentItem.Url), $"{text}\n{documentItem.Title}");
                             break;
                         case LinkItem linkItem:
-                            m_telegramBot.SendTextMessageAsync(_userId, $"{text}/n{linkItem.Url}");
+                            m_telegramBot.SendTextMessageAsync(_userId, $"{text}\n{linkItem.Url}");
                             break;
                     }
                 }

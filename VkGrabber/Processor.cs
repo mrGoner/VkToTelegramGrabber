@@ -67,9 +67,9 @@ namespace VkGrabber
             lock (m_syncObject)
             {
                 m_queue.Enqueue(new ProcessorJob(_action));
-
-                m_autoResetEvent.Set();
             }
+
+            m_autoResetEvent.Set();
         }
     }
 

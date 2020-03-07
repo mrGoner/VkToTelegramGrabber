@@ -10,7 +10,7 @@ namespace VkTools.ObjectModel.Wall
         public int FromId { get; set; }
         public DateTime Date { get; set; }
         public string Text { get; set; }
-        public IAttachmentElement[] Attachments { get; set; }
+        public IAttachmentElement[] Attachments { get; set; } = new IAttachmentElement[0];
         public PostSource PostSource { get; set; }
     }
 }

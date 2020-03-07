@@ -31,9 +31,26 @@ namespace VkApi
             {
                 var request = RequestBuilder.BuildNewsFeedRequest(_userToken, m_currentVkVersion,
                                  _start, _end, _sourceIds);
+
                 var responseData = m_requestExecutor.Execute(request);
 
-                var newsFeed = m_newsFeedDeserializer.Deserialize(responseData);
+                var getVideoFunc = new Func<VideoInfo, string>((_arg) =>
+                {
+                    try
+                    {
+                        var getVideoRequest = RequestBuilder.BuildGetVideoRequest(_userToken, m_currentVkVersion, _arg.OwnerId, _arg.VideoId);
+
+                        var videoResponseData = m_requestExecutor.Execute(getVideoRequest);
+
+                        return videoResponseData;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new VkException("Failed to get video", ex);
+                    }
+                });
+
+                var newsFeed = m_newsFeedDeserializer.Deserialize(responseData, getVideoFunc);
 
                 return newsFeed;
             }

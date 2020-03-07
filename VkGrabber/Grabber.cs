@@ -44,27 +44,34 @@ namespace VkGrabber
         {
             m_updateTimer.Stop();
 
-            using (var context = new GrabberDbContext())
+            try
             {
-                foreach (var dbUser in context.DbUsers.ToList())
+                using (var context = new GrabberDbContext())
                 {
-                    var dtNow = DateTime.Now.ToUniversalTime();
-
-                    var groupsToUpdate = context.DbGroups.Where(_dbGroup =>
-                            (_dbGroup.LastUpdateDateTime + _dbGroup.UpdatePeriod) < dtNow && 
-                            _dbGroup.DbUser.Id == dbUser.Id && !_dbGroup.IsUpdating).ToList();
-
-                    if (groupsToUpdate.Any())
+                    foreach (var dbUser in context.DbUsers.ToList())
                     {
-                        var startDateTime = groupsToUpdate.Select(_group => _group.LastUpdateDateTime).Min();
+                        var dtNow = DateTime.Now.ToUniversalTime();
 
-                        groupsToUpdate.ForEach(_group => _group.IsUpdating = true);
+                        var groupsToUpdate = context.DbGroups.ToList().Where(_dbGroup =>
+                                (_dbGroup.LastUpdateDateTime + _dbGroup.UpdatePeriod) < dtNow &&
+                                _dbGroup.DbUser.Id == dbUser.Id && !_dbGroup.IsUpdating).ToList();
 
-                        m_processor.Add(() => GetPostsFromGroup(dbUser, startDateTime, dtNow, groupsToUpdate));
+                        if (groupsToUpdate.Any())
+                        {
+                            var startDateTime = groupsToUpdate.Select(_group => _group.LastUpdateDateTime).Min();
+
+                            groupsToUpdate.ForEach(_group => _group.IsUpdating = true);
+
+                            m_processor.Add(() => GetPostsFromGroup(dbUser, startDateTime, dtNow, groupsToUpdate));
+                        }
                     }
-                }
 
-                context.SaveChanges();
+                    context.SaveChanges();
+                }
+            }
+            catch(Exception ex)
+            {
+                Log.Error("Failed to updateTick", ex);
             }
 
             m_updateTimer.Start();
@@ -164,7 +171,7 @@ namespace VkGrabber
         {
             public int Compare(Post _x, Post _y)
             {
-                return _x.PublishTime.CompareTo(_y);
+                return _x.PublishTime.CompareTo(_y.PublishTime);
             }
         }
     }

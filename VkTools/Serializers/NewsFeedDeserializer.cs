@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 using VkTools.ObjectModel;
 using VkTools.ObjectModel.Attachments;
@@ -66,7 +67,6 @@ namespace VkTools.Serializers
         public const string PVideoViews = "views";
         public const string PVideoComments = "comments";
         public const string PVideoPlayer = "player";
-        public const string PVideoIsFavorite = "is_favorite";
         public const string PAudioArtist = "artist";
         public const string PLinkDescription = "description";
         public const string PAttachmentAccessKey = "access_key";
@@ -74,10 +74,14 @@ namespace VkTools.Serializers
         public const string PHistoryOwnerId = "owner_id";
         public const string PHistoryFromId = "from_id";
         public const string PSourceId = "source_id";
+        public const string PVideoImage = "image";
+        public const string PVideoFirstFrame = "first_frame";
 
         #endregion
 
-        public NewsFeed Deserialize(string _data)
+        private VideoAttachmentDeserializer m_videoAttachmentDeserializer = new VideoAttachmentDeserializer();
+
+        public NewsFeed Deserialize(string _data, Func<VideoInfo, string> _loadVideoItem = null)
         {
             var jObject = JObject.Parse(_data);
 
@@ -92,28 +96,28 @@ namespace VkTools.Serializers
                         var itemRawType = jItem[PItemType].Value<string>();
 
                         if (itemRawType == "post")
-                            newsFeed.Add(ParsePostItem(jItem));
+                            newsFeed.Add(ParsePostItem(jItem, _loadVideoItem));
                     }
 
                     return newsFeed;
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     throw new DeserializerException("Failed to deserialize newsfeed", ex);
                 }
             }
 
-            throw new DeserializerException($"Failed recognize jObject as vk response /n {_data}");
+            throw new DeserializerException($"Failed recognize jObject as vk response \n {_data}");
         }
 
-        private Post ParsePostItem(JObject _jPostItem)
+        private Post ParsePostItem(JObject _jPostItem, Func<VideoInfo, string> _loadVideoItem)
         {
             try
             {
                 var post = new Post();
 
                 post.SourceId = _jPostItem[PSourceId].Value<int>();
-                post.Date = EpochTimeConverter.ConvertToDateTime(_jPostItem[PItemDate].Value<int>());
+                post.Date = EpochTimeConverter.ConvertToDateTime(_jPostItem[PItemDate].Value<long>());
                 post.PostId = _jPostItem[PItemId].Value<int>();
                 post.Text = _jPostItem[PItemText].Value<string>();
                 post.SignerId = _jPostItem[PItemSignerId]?.Value<int>() ?? null;
@@ -122,7 +126,7 @@ namespace VkTools.Serializers
 
                 var attachmentsRaw = _jPostItem[PAttachments];
                 if (attachmentsRaw != null)
-                    post.Attachments = ParseAttachments(attachmentsRaw).ToArray();
+                    post.Attachments = ParseAttachments(attachmentsRaw, _loadVideoItem).ToArray();
 
                 post.Comments = ParseComments((JObject)_jPostItem[PComments]);
                 post.Likes = ParseLikes((JObject)_jPostItem[PLikes]);
@@ -132,17 +136,17 @@ namespace VkTools.Serializers
                 var rawHistoryElem = _jPostItem[PCopyHistrory];
 
                 if (rawHistoryElem != null)
-                    post.CopyHistory = ParseHistory(rawHistoryElem).ToArray();
+                    post.CopyHistory = ParseHistory(rawHistoryElem, _loadVideoItem).ToArray();
 
                 return post;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 throw new InvalidOperationException($"Failed to parse post item \n {_jPostItem?.ToString()}", ex);
             }
         }
 
-        private List<HistoryPost> ParseHistory(JToken _jHistory)
+        private List<HistoryPost> ParseHistory(JToken _jHistory, Func<VideoInfo, string> _loadVideoItem)
         {
             if (_jHistory is JArray jCopyHistory)
             {
@@ -157,14 +161,14 @@ namespace VkTools.Serializers
                         historyPost.Id = jHistoryElement[PId].Value<int>();
                         historyPost.OwnerId = jHistoryElement[PHistoryOwnerId].Value<int>();
                         historyPost.FromId = jHistoryElement[PHistoryFromId].Value<int>();
-                        historyPost.Date = EpochTimeConverter.ConvertToDateTime(jHistoryElement[PDate].Value<int>());
+                        historyPost.Date = EpochTimeConverter.ConvertToDateTime(jHistoryElement[PDate].Value<long>());
                         historyPost.Text = jHistoryElement[PItemText].Value<string>();
                         historyPost.PostSource = ParsePostSource((JObject)jHistoryElement[PPostSource]);
 
                         var attachmentsRaw = jHistoryElement[PAttachments];
 
                         if (attachmentsRaw != null)
-                            historyPost.Attachments = ParseAttachments(attachmentsRaw).ToArray();
+                            historyPost.Attachments = ParseAttachments(attachmentsRaw, _loadVideoItem).ToArray();
 
                         historyCollection.Add(historyPost);
 
@@ -172,13 +176,13 @@ namespace VkTools.Serializers
 
                     return historyCollection;
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
-                    throw new InvalidOperationException($"Failed to parse history /n {_jHistory.ToString()}", ex);
+                    throw new InvalidOperationException($"Failed to parse history \n {_jHistory.ToString()}", ex);
                 }
             }
 
-            throw new ArgumentException($"History element not recognized as array /n {_jHistory?.ToString()}");
+            throw new ArgumentException($"History element not recognized as array \n {_jHistory?.ToString()}");
         }
 
         private Comments ParseComments(JObject _jComments)
@@ -193,9 +197,9 @@ namespace VkTools.Serializers
 
                 return new Comments(count, canComment, groupCanComment);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                throw new InvalidOperationException($"Failed to parse comments /n {_jComments.ToString()}", ex);
+                throw new InvalidOperationException($"Failed to parse comments \n {_jComments.ToString()}", ex);
             }
         }
 
@@ -259,9 +263,9 @@ namespace VkTools.Serializers
 
                 return postSource;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                throw new InvalidOperationException($"Failed to parse post source /n {_jPostSource.ToString()}", ex);
+                throw new InvalidOperationException($"Failed to parse post source \n {_jPostSource.ToString()}", ex);
             }
         }
 
@@ -276,9 +280,9 @@ namespace VkTools.Serializers
 
                 return new Likes(count, userLikes, canLike, canPublish);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                throw new InvalidOperationException($"Failed to parse likes /n {_jLikes.ToString()}", ex);
+                throw new InvalidOperationException($"Failed to parse likes \n {_jLikes.ToString()}", ex);
             }
         }
 
@@ -291,9 +295,9 @@ namespace VkTools.Serializers
 
                 return new Reposts(count, userReposted);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                throw new InvalidOperationException($"Failed to parse reposts /n {_jReposts.ToString()}", ex);
+                throw new InvalidOperationException($"Failed to parse reposts \n {_jReposts.ToString()}", ex);
             }
         }
 
@@ -305,13 +309,13 @@ namespace VkTools.Serializers
 
                 return new Views(count);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                throw new InvalidOperationException($"Failed to parse views /n {_jViews.ToString()}", ex);
+                throw new InvalidOperationException($"Failed to parse views \n {_jViews.ToString()}", ex);
             }
         }
 
-        private List<IAttachmentElement> ParseAttachments(JToken _jAttachments)
+        private List<IAttachmentElement> ParseAttachments(JToken _jAttachments, Func<VideoInfo, string> _loadVideoItem)
         {
             try
             {
@@ -329,7 +333,7 @@ namespace VkTools.Serializers
                                 attachments.Add(ParsePhotoAttachment(jAttachment));
                                 break;
                             case "video":
-                                attachments.Add(ParseVideoAttachment(jAttachment));
+                                attachments.Add(ParseVideoAttachment(jAttachment, _loadVideoItem));
                                 break;
                             case "doc":
                                 attachments.Add(ParseDocAttachment(jAttachment));
@@ -350,12 +354,12 @@ namespace VkTools.Serializers
                     return attachments;
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                throw new InvalidOperationException($"Failed to parse attachments /n {_jAttachments.ToString()}", ex);
+                throw new InvalidOperationException($"Failed to parse attachments \n {_jAttachments.ToString()}", ex);
             }
 
-            throw new ArgumentException($"Failed to recognize attachment token as jArray /n {_jAttachments?.ToString()}");
+            throw new ArgumentException($"Failed to recognize attachment token as jArray \n {_jAttachments?.ToString()}");
         }
 
         private PhotoAttachment ParsePhotoAttachment(JObject _jPhoto)
@@ -371,7 +375,7 @@ namespace VkTools.Serializers
                     photoAttachment.OwnerId = photoJObj[PAttachmentOwnerId].Value<int>();
                     photoAttachment.UserId = photoJObj[PPhotoUserId]?.Value<int>();
                     photoAttachment.Text = photoJObj[PPhotoText]?.Value<string>();
-                    photoAttachment.Date = EpochTimeConverter.ConvertToDateTime(photoJObj[PDate].Value<int>());
+                    photoAttachment.Date = EpochTimeConverter.ConvertToDateTime(photoJObj[PDate].Value<long>());
                     photoAttachment.AccessKey = photoJObj[PAttachmentAccessKey]?.Value<string>();
 
                     var sizes = new List<PhotoSizeInfo>();
@@ -396,12 +400,12 @@ namespace VkTools.Serializers
                     return photoAttachment;
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                throw new InvalidOperationException($"Failed to parse photo attachment /n {_jPhoto.ToString()}", ex);
+                throw new InvalidOperationException($"Failed to parse photo attachment \n {_jPhoto.ToString()}", ex);
             }
 
-            throw new ArgumentException($"Failed recognize jObject as photo attachment /n {_jPhoto?.ToString()}");
+            throw new ArgumentException($"Failed recognize jObject as photo attachment \n {_jPhoto?.ToString()}");
         }
 
         private DocumentAttachment ParseDocAttachment(JObject _jDoc)
@@ -415,22 +419,22 @@ namespace VkTools.Serializers
                     docAttachment.Id = jDoc[PId].Value<int>();
                     docAttachment.OwnerId = jDoc[PAttachmentOwnerId].Value<int>();
                     docAttachment.Title = jDoc[PTitle]?.Value<string>();
-                    docAttachment.Date = EpochTimeConverter.ConvertToDateTime(jDoc[PDate].Value<int>());
+                    docAttachment.Date = EpochTimeConverter.ConvertToDateTime(jDoc[PDate].Value<long>());
                     docAttachment.Url = jDoc[PUrl].Value<string>();
                     docAttachment.AccessKey = jDoc[PAttachmentAccessKey]?.Value<string>();
 
                     return docAttachment;
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                throw new InvalidOperationException($"Failed to parse doc attachment /n {_jDoc.ToString()}", ex);
+                throw new InvalidOperationException($"Failed to parse doc attachment \n {_jDoc.ToString()}", ex);
             }
 
-            throw new DeserializerException($"Failed recognize jObject as document attachment /n {_jDoc?.ToString()}");
+            throw new DeserializerException($"Failed recognize jObject as document attachment \n {_jDoc?.ToString()}");
         }
 
-        private VideoAttachment ParseVideoAttachment(JObject _jVideo)
+        private VideoAttachment ParseVideoAttachment(JObject _jVideo, Func<VideoInfo, string> _loadVideoItem)
         {
             try
             {
@@ -443,22 +447,68 @@ namespace VkTools.Serializers
                     videoAttachment.Title = jVideo[PTitle].Value<string>();
                     videoAttachment.Description = jVideo[PVideoDescription].Value<string>();
                     videoAttachment.Duration = jVideo[PVideoDuration].Value<int>();
-                    videoAttachment.Date = EpochTimeConverter.ConvertToDateTime(jVideo[PDate].Value<int>());
+                    videoAttachment.Date = EpochTimeConverter.ConvertToDateTime(jVideo[PDate].Value<long>());
                     videoAttachment.Views = jVideo[PVideoViews].Value<int>();
                     videoAttachment.CommentsCount = jVideo[PVideoComments].Value<int>();
                     videoAttachment.PlayerUrl = jVideo[PVideoPlayer]?.Value<string>();
-                    videoAttachment.IsFavorite = jVideo[PVideoIsFavorite].Value<bool>();
-                    videoAttachment.AccessKey = jVideo[PAttachmentAccessKey]?.Value<string>();
+                    videoAttachment.AccessKey = jVideo[PAttachmentAccessKey].Value<string>();
+
+
+                    if (jVideo.ContainsKey(PVideoImage) && jVideo[PVideoImage] is JArray jImages)
+                    {
+                        videoAttachment.Images = jImages.Select(_x =>
+                        {
+                            return new Image
+                            {
+                                Height = _x[PSizesHeight].Value<int>(),
+                                Width = _x[PSizesWidth].Value<int>(),
+                                Url = _x[PUrl].Value<string>()
+                            };
+                        }).ToArray();
+                    }
+
+                    if (jVideo.ContainsKey(PVideoFirstFrame) && jVideo[PVideoFirstFrame] is JArray jFrames)
+                    {
+                        videoAttachment.FirstFrames = jFrames.Select(_x =>
+                        {
+                            return new Image
+                            {
+                                Height = _x[PSizesHeight].Value<int>(),
+                                Width = _x[PSizesWidth].Value<int>(),
+                                Url = _x[PUrl].Value<string>()
+                            };
+                        }).ToArray();
+                    }
+
+                    if(videoAttachment.PlayerUrl == null && _loadVideoItem != null)
+                    {
+                        try
+                        {
+                            var data = _loadVideoItem(new VideoInfo
+                            {
+                                OwnerId = videoAttachment.OwnerId,
+                                VideoId = videoAttachment.Id
+                            });
+
+                            var videoInfo = m_videoAttachmentDeserializer.Deserialize(data);
+
+                            videoAttachment.PlayerUrl = videoInfo.PlayerUrl;
+                        }
+                        catch
+                        {
+                            //nothing to do
+                        }
+                    }
 
                     return videoAttachment;
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                throw new InvalidOperationException($"Failed to parse video attachment /n {_jVideo.ToString()}", ex);
+                throw new InvalidOperationException($"Failed to parse video attachment \n {_jVideo.ToString()}", ex);
             }
 
-            throw new ArgumentException($"Failed recognize jObject as video attachment /n {_jVideo?.ToString()}");
+            throw new ArgumentException($"Failed recognize jObject as video attachment \n {_jVideo?.ToString()}");
         }
 
         private AudioAttachment ParseAudioAttachment(JObject _jAudio)
@@ -479,12 +529,12 @@ namespace VkTools.Serializers
                     return audioAttachments;
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                throw new InvalidOperationException($"Failed to parse audio attachment /n {_jAudio.ToString()}", ex);
+                throw new InvalidOperationException($"Failed to parse audio attachment \n {_jAudio.ToString()}", ex);
             }
 
-            throw new ArgumentException($"Failed recognize jObject as audio attachment /n {_jAudio?.ToString()}");
+            throw new ArgumentException($"Failed recognize jObject as audio attachment \n {_jAudio?.ToString()}");
         }
 
         private LinkAttachment ParseLinkAttachment(JObject _jLink)
@@ -503,12 +553,12 @@ namespace VkTools.Serializers
                     return linkAttachment;
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                throw new InvalidOperationException($"Failed to parse link attachment /n {_jLink.ToString()}", ex);
+                throw new InvalidOperationException($"Failed to parse link attachment \n {_jLink.ToString()}", ex);
             }
 
-            throw new ArgumentException($"Failed recognize jObject as link attachment /n {_jLink?.ToString()}");
+            throw new ArgumentException($"Failed recognize jObject as link attachment \n {_jLink?.ToString()}");
         }
     }
 }

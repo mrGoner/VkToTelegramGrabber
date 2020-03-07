@@ -47,7 +47,8 @@ namespace TelegramBot.UserHelpers
                     var url = m_vkApi.GetAuthUrl(id, VkApi.Requests.Permissions.Offline |
                                                      VkApi.Requests.Permissions.Wall |
                                                      VkApi.Requests.Permissions.Groups |
-                                                     VkApi.Requests.Permissions.Friends);
+                                                     VkApi.Requests.Permissions.Friends |
+                                                     VkApi.Requests.Permissions.Video);
 
                     return new Response($"Перейди по данной ссылке {url}, после чего пришли мне access_token из строки браузера");
                 }
