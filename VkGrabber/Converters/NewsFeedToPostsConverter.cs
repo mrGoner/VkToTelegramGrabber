@@ -37,7 +37,8 @@ namespace VkGrabber.Converters
                     if (vkPost.CopyHistory != null && vkPost.CopyHistory.Any())
                     {
                         var copyHistory = vkPost.CopyHistory.First();
-                        post = new Post(copyHistory.Id, clearSourceId, copyHistory.Date, groupName, copyHistory.Text,
+                        //merge maybe
+                        post = new Post(vkPost.PostId, clearSourceId, copyHistory.Date, groupName, copyHistory.Text,
                             ParseAttachments(copyHistory.Attachments).ToArray());
                     }
                     else

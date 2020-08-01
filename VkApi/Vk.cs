@@ -92,9 +92,9 @@ namespace VkApi
 
                 return likesCount;
             }
-            catch
+            catch(Exception ex)
             {
-                throw new VkException("Failed to like post");
+                throw new VkException($"Failed to like post for owner {_itemOwner} itemId {_itemId}", ex);
             }
         }
 

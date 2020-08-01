@@ -27,7 +27,7 @@ namespace VkTools.Serializers
             }
             catch
             {
-                throw new DeserializerException("Failed to parse likes count");
+                throw new DeserializerException($"Failed to parse likes count jobject: {_data}");
             }
         } 
     }

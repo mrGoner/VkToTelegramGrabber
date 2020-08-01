@@ -12,6 +12,7 @@ using VkGrabber.Model;
 using TelegramBot.UserHelpers;
 using Telegram.Bot.Types.ReplyMarkups;
 using TelegramBot.Helpers;
+using Telegram.Bot.Exceptions;
 
 namespace TelegramBot
 {
@@ -85,6 +86,9 @@ namespace TelegramBot
 
                     try
                     {
+
+                        await m_telegramBot.AnswerCallbackQueryAsync(_e.CallbackQuery.Id, text: "Вам ❤ это");
+
                         likeInfo.IsLiked = true;
 
                         var likeButton = KeyBoardBuilder.BuildInlineKeyboard(new[]
@@ -95,13 +99,17 @@ namespace TelegramBot
                         await m_telegramBot.EditMessageReplyMarkupAsync(_e.CallbackQuery.Message.Chat.Id,
                             _e.CallbackQuery.Message.MessageId, replyMarkup: likeButton);
 
-                        m_vkApi.LikePost(likeInfo.OwnerId, (uint)likeInfo.ItemId, user.Token);
-
-                        await m_telegramBot.AnswerCallbackQueryAsync(_e.CallbackQuery.Id, text: "Вам ❤ это");
+                        m_vkApi.LikePost(-likeInfo.OwnerId, (uint)likeInfo.ItemId, user.Token);
                     }
-                    catch
+                    catch (InvalidParameterException)
+                    {
+                        //too late response
+                    }
+                    catch(Exception ex)
                     {
                         likeInfo.IsLiked = false;
+
+                        await m_telegramBot.AnswerCallbackQueryAsync(_e.CallbackQuery.Id, text: "Не удалось поставить ❤");
 
                         var likeButton = KeyBoardBuilder.BuildInlineKeyboard(new[]
                         {
@@ -111,8 +119,12 @@ namespace TelegramBot
                         await m_telegramBot.EditMessageReplyMarkupAsync(_e.CallbackQuery.Message.Chat.Id,
                              _e.CallbackQuery.Message.MessageId, replyMarkup: likeButton);
 
-                        await m_telegramBot.AnswerCallbackQueryAsync(_e.CallbackQuery.Id, text: "Вам ❤ это");
+                        Console.WriteLine(ex);
                     }
+                }
+                catch (InvalidParameterException)
+                {
+                    //too late response
                 }
                 catch (Exception ex)
                 {
