@@ -10,6 +10,8 @@ using VkGrabber;
 using VkApi;
 using VkGrabber.Model;
 using TelegramBot.UserHelpers;
+using Telegram.Bot.Types.ReplyMarkups;
+using TelegramBot.Helpers;
 
 namespace TelegramBot
 {
@@ -38,13 +40,14 @@ namespace TelegramBot
             },
             new DefaultHelper());
 
-            m_telegramBot.OnMessage += TelegramBot_OnMessage;
-
             m_userManager = new UserManager();
             m_grabber = new Grabber(m_apiVersion, TimeSpan.FromMinutes(15));
             m_grabber.Start();
             m_vkApi = new Vk(m_apiVersion);
             m_messageQueue = new MessageQueue(TimeSpan.FromSeconds(7), 4, SendMessage);
+
+            m_telegramBot.OnMessage += TelegramBot_OnMessage;
+            m_telegramBot.OnCallbackQuery += TelegramBot_OnCallbackQuery;
 
             m_grabber.NewDataGrabbedEventHandler += Grabber_NewDataGrabbedEventHandler;
 
@@ -53,6 +56,69 @@ namespace TelegramBot
             Console.WriteLine($"Bot name: {m_botName}");
 
             m_telegramBot.StartReceiving();
+        }
+
+        private async void TelegramBot_OnCallbackQuery(object _sender, CallbackQueryEventArgs _e)
+        {
+            if (_e.CallbackQuery?.Data == null)
+                return;
+
+            if (PostLikeHelper.TryParseLikeInfo(_e.CallbackQuery.Data, out var likeInfo))
+            {
+                try
+                {
+                    if (likeInfo.IsLiked)
+                    {
+                        await m_telegramBot.AnswerCallbackQueryAsync(_e.CallbackQuery.Id, text: "Отметка ❤ уже поставлена");
+
+                        return;
+                    }
+
+                    var user = m_userManager.GetUser(_e.CallbackQuery.Message.Chat.Id.ToString());
+
+                    if (user == null)
+                    {
+                        await m_telegramBot.AnswerCallbackQueryAsync(_e.CallbackQuery.Id, text: "Пользователь не найден");
+
+                        return;
+                    }
+
+                    try
+                    {
+                        likeInfo.IsLiked = true;
+
+                        var likeButton = KeyBoardBuilder.BuildInlineKeyboard(new[]
+                        {
+                            new KeyValuePair<string, string>("✅❤", PostLikeHelper.SerializeInfo(likeInfo))
+                        }) as InlineKeyboardMarkup;
+
+                        await m_telegramBot.EditMessageReplyMarkupAsync(_e.CallbackQuery.Message.Chat.Id,
+                            _e.CallbackQuery.Message.MessageId, replyMarkup: likeButton);
+
+                        m_vkApi.LikePost(likeInfo.OwnerId, (uint)likeInfo.ItemId, user.Token);
+
+                        await m_telegramBot.AnswerCallbackQueryAsync(_e.CallbackQuery.Id, text: "Вам ❤ это");
+                    }
+                    catch
+                    {
+                        likeInfo.IsLiked = false;
+
+                        var likeButton = KeyBoardBuilder.BuildInlineKeyboard(new[]
+                        {
+                            new KeyValuePair<string, string>("❤", PostLikeHelper.SerializeInfo(likeInfo))
+                        }) as InlineKeyboardMarkup;
+
+                        await m_telegramBot.EditMessageReplyMarkupAsync(_e.CallbackQuery.Message.Chat.Id,
+                             _e.CallbackQuery.Message.MessageId, replyMarkup: likeButton);
+
+                        await m_telegramBot.AnswerCallbackQueryAsync(_e.CallbackQuery.Id, text: "Вам ❤ это");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
+            }
         }
 
         private void Grabber_NewDataGrabbedEventHandler(string _userKey, Posts _posts)
@@ -70,8 +136,16 @@ namespace TelegramBot
 
             var text = string.Format("Группа: {0} \n \n {1}", _post.GroupName, _post.Text);
 
+            var serializedLikeInfo = PostLikeHelper.SerializeInfo(new LikeInfo
+            {
+                OwnerId = _post.GroupId,
+                ItemId  = _post.PostId
+            });
+
+            var likeButton = KeyBoardBuilder.BuildInlineKeyboard(new[] { new KeyValuePair<string, string>("❤", serializedLikeInfo) });
+
             if (!_post.Items.Any())
-                m_telegramBot.SendTextMessageAsync(_userId, text);
+                m_telegramBot.SendTextMessageAsync(_userId, text, replyMarkup: likeButton);
             else
             {
                 if (_post.Items.Length == 1)
@@ -79,22 +153,24 @@ namespace TelegramBot
                     switch (_post.Items.First())
                     {
                         case ImageItem imageItem:
-                            m_telegramBot.SendPhotoAsync(_userId, new InputOnlineFile(imageItem.UrlMedium ?? imageItem.UrlSmall), text);
+                            m_telegramBot.SendPhotoAsync(_userId,
+                                new InputOnlineFile(imageItem.UrlMedium ?? imageItem.UrlSmall), text, replyMarkup: likeButton);
                             break;
                         case VideoItem videoItem:
-                            m_telegramBot.SendTextMessageAsync(_userId, $"{text}\n{videoItem.Url}");
+                            m_telegramBot.SendTextMessageAsync(_userId, $"{text}\n{videoItem.Url}", replyMarkup: likeButton);
                             break;
                         case DocumentItem documentItem:
-                            m_telegramBot.SendDocumentAsync(_userId, new InputOnlineFile(documentItem.Url), $"{text}\n{documentItem.Title}");
+                            m_telegramBot.SendDocumentAsync(_userId,
+                                new InputOnlineFile(documentItem.Url), $"{text}\n{documentItem.Title}", replyMarkup: likeButton);
                             break;
                         case LinkItem linkItem:
-                            m_telegramBot.SendTextMessageAsync(_userId, $"{text}\n{linkItem.Url}");
+                            m_telegramBot.SendTextMessageAsync(_userId, $"{text}\n{linkItem.Url}", replyMarkup: likeButton);
                             break;
                     }
                 }
                 else
                 {
-                    m_telegramBot.SendTextMessageAsync(_userId, text);
+                    m_telegramBot.SendTextMessageAsync(_userId, text, replyMarkup: likeButton);
 
                     var media = new List<IAlbumInputMedia>();
 

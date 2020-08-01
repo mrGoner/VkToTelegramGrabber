@@ -6,6 +6,7 @@ using System.Text;
 using VkTools.ObjectModel;
 using Group = VkTools.ObjectModel.Group;
 using System.Linq;
+using TelegramBot.Helpers;
 
 namespace TelegramBot.UserHelpers
 {
@@ -35,116 +36,127 @@ namespace TelegramBot.UserHelpers
 
         public Response OnMessage(string _message)
         {
-            var user = m_userManager.GetUser(m_userId.ToString());
-
-            if (user == null)
-                return new Response("Ты еще не зарегистрирован!");
-
-            if (_message == Command)
-                return new Response("Выбирай команду:", m_generalMarkup);
-
-            if (_message == "Добавить группу")
+            try
             {
-                var builder = new StringBuilder();
+                var user = m_userManager.GetUser(m_userId.ToString());
 
-                builder.AppendLine("Пришли мне ID группы для добавления из списка ниже");
-
-                m_rawGroups = m_vkApi.GetGroups(user.Token, 100);
-
-                foreach(var userGroup in user.Groups)
+                if (user == null)
                 {
-                    var existed = m_rawGroups.FirstOrDefault(_rawGroup => _rawGroup.Id == userGroup.GroupId);
-
-                    if (existed != null)
-                        m_rawGroups.Remove(existed);
+                    return new Response("Ты еще не зарегистрирован!");
                 }
 
-                for (int i = 0; i < m_rawGroups.Count; i++)
+                if (_message == Command)
+                    return new Response("Выбирай команду:", m_generalMarkup);
+
+                if (_message == "Добавить группу")
                 {
-                    var group = m_rawGroups[i];
-                    builder.AppendLine($"ID: {i}. Имя: {group.Name}");
-                }
+                    var builder = new StringBuilder();
 
-                m_waitingGroupNum = true;
-                m_waitingGroupPeriod = false;
-                m_waitingGroupRemove = false;
+                    builder.AppendLine("Пришли мне ID группы для добавления из списка ниже");
 
+                    m_rawGroups = m_vkApi.GetGroups(user.Token, 100);
 
-                return new Response(builder.ToString());
-            }
-
-            if (_message == "Удалить группу")
-            {
-                var builder = new StringBuilder();
-
-                builder.AppendLine("Пришли мне ID группы для удаления из списка ниже");
-
-                if (user.Groups.Any())
-                {
-                    for (int i = 0; i < user.Groups.Length; i++)
+                    foreach (var userGroup in user.Groups)
                     {
-                        var group = user.Groups[i];
+                        var existed = m_rawGroups.FirstOrDefault(_rawGroup => _rawGroup.Id == userGroup.GroupId);
+
+                        if (existed != null)
+                            m_rawGroups.Remove(existed);
+                    }
+
+                    for (int i = 0; i < m_rawGroups.Count; i++)
+                    {
+                        var group = m_rawGroups[i];
                         builder.AppendLine($"ID: {i}. Имя: {group.Name}");
                     }
 
-                    m_waitingGroupNum = false;
+                    m_waitingGroupNum = true;
                     m_waitingGroupPeriod = false;
-                    m_waitingGroupRemove = true;
+                    m_waitingGroupRemove = false;
+
 
                     return new Response(builder.ToString());
                 }
 
-                return new Response("Список групп пуст!", m_generalMarkup);
-            }
-
-            if (m_waitingGroupRemove)
-            {
-                m_waitingGroupRemove = false;
-
-                if (int.TryParse(_message, out var removeIndex) && removeIndex >= 0  && user.Groups.Length -1 >= removeIndex)
+                if (_message == "Удалить группу")
                 {
-                    m_userManager.RemoveGroupFromUser(user.Key, user.Groups[removeIndex]);
+                    var builder = new StringBuilder();
 
-                    return new Response("Удалено!", m_generalMarkup);
+                    builder.AppendLine("Пришли мне ID группы для удаления из списка ниже");
+
+                    if (user.Groups.Any())
+                    {
+                        for (int i = 0; i < user.Groups.Length; i++)
+                        {
+                            var group = user.Groups[i];
+                            builder.AppendLine($"ID: {i}. Имя: {group.Name}");
+                        }
+
+                        m_waitingGroupNum = false;
+                        m_waitingGroupPeriod = false;
+                        m_waitingGroupRemove = true;
+
+                        return new Response(builder.ToString());
+                    }
+
+                    return new Response("Список групп пуст!", m_generalMarkup);
                 }
 
-                return new Response("Некорректный ID", m_generalMarkup);
-            }
-
-            if (m_waitingGroupNum)
-            {
-                m_waitingGroupNum = false;
-
-                if (int.TryParse(_message, out var groupNum) && groupNum >= 0 &&  m_rawGroups.Count - 1 >= groupNum)
+                if (m_waitingGroupRemove)
                 {
-                    m_selectedGroup = m_rawGroups[groupNum];
+                    m_waitingGroupRemove = false;
 
-                    m_waitingGroupPeriod = true;
+                    if (int.TryParse(_message, out var removeIndex) && removeIndex >= 0 && user.Groups.Length - 1 >= removeIndex)
+                    {
+                        m_userManager.RemoveGroupFromUser(user.Key, user.Groups[removeIndex]);
 
-                    return new Response("Почти все! Выбери период обновления",
-                        KeyBoardBuilder.BuildMarkupKeyboard(new string[] { "00:15:00", "00:30:00", "01:00:00", "01:30:00", "02:00:00" }));
+                        return new Response("Удалено!", m_generalMarkup);
+                    }
+
+                    return new Response("Некорректный ID", m_generalMarkup);
                 }
 
-                return new Response("Некорректный ID", m_generalMarkup);
-            }
-
-            if (m_waitingGroupPeriod)
-            {
-                m_waitingGroupPeriod = false;
-
-                if (TimeSpan.TryParse(_message, out var span) &&
-                    span >= TimeSpan.FromMinutes(15))
+                if (m_waitingGroupNum)
                 {
-                    m_userManager.AddGroupToUser(user.Key,
-                        new VkGrabber.Group(m_selectedGroup.Id, span, m_selectedGroup.Name));
+                    m_waitingGroupNum = false;
 
-                    return new Response("Добавлено!", m_generalMarkup);
+                    if (int.TryParse(_message, out var groupNum) && groupNum >= 0 && m_rawGroups.Count - 1 >= groupNum)
+                    {
+                        m_selectedGroup = m_rawGroups[groupNum];
+
+                        m_waitingGroupPeriod = true;
+
+                        return new Response("Почти все! Выбери период обновления",
+                            KeyBoardBuilder.BuildMarkupKeyboard(new string[] { "00:15:00", "00:30:00", "01:00:00", "01:30:00", "02:00:00" }));
+                    }
+
+                    return new Response("Некорректный ID", m_generalMarkup);
                 }
 
-                return new Response("Некорректный период обновления!", m_generalMarkup);
-            }
+                if (m_waitingGroupPeriod)
+                {
+                    m_waitingGroupPeriod = false;
 
-            return null;
+                    if (TimeSpan.TryParse(_message, out var span) &&
+                        span >= TimeSpan.FromMinutes(15))
+                    {
+                        m_userManager.AddGroupToUser(user.Key,
+                            new VkGrabber.Group(m_selectedGroup.Id, span, m_selectedGroup.Name));
+
+                        return new Response("Добавлено!", m_generalMarkup);
+                    }
+
+                    return new Response("Некорректный период обновления!", m_generalMarkup);
+                }
+
+                return null;
+            }
+            catch
+            {
+                WorkCompleteEventHandler?.Invoke(m_userId);
+
+                return new Response("Что-то пошло не так");
+            }
         }
     }
 }

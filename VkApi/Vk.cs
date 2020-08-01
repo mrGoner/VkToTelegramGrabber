@@ -11,6 +11,7 @@ namespace VkApi
         private readonly RequestExecutor m_requestExecutor;
         private readonly NewsFeedDeserializer m_newsFeedDeserializer;
         private readonly GroupsDeserializer m_groupsDeserializer;
+        private readonly LikesDeserializer m_likesDeserializer;
         private readonly string m_currentVkVersion;
         private const string m_baseUrl = "https://api.vk.com/method";
 
@@ -23,6 +24,7 @@ namespace VkApi
             m_requestExecutor = new RequestExecutor(m_baseUrl);
             m_newsFeedDeserializer = new NewsFeedDeserializer();
             m_groupsDeserializer = new GroupsDeserializer();
+            m_likesDeserializer = new LikesDeserializer();
         }
 
         public NewsFeed GetNewsFeed(string _userToken, DateTime _start, DateTime _end, string _sourceIds)
@@ -75,6 +77,24 @@ namespace VkApi
             catch (Exception ex)
             {
                 throw new VkException("Failed to get groups", ex);
+            }
+        }
+
+        public int LikePost(int _itemOwner, uint _itemId, string _userToken)
+        {
+            try
+            {
+                var request = RequestBuilder.BuildLikeRequest(LikeType.Post, _itemOwner, _itemId, _userToken, m_currentVkVersion);
+
+                var responseData = m_requestExecutor.Execute(request);
+
+                var likesCount = m_likesDeserializer.ParseLikesCount(responseData);
+
+                return likesCount;
+            }
+            catch
+            {
+                throw new VkException("Failed to like post");
             }
         }
 

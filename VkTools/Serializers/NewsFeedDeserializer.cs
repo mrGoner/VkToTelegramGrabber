@@ -440,18 +440,19 @@ namespace VkTools.Serializers
             {
                 if (_jVideo[PAttachmentsVideo] is JObject jVideo)
                 {
-                    var videoAttachment = new VideoAttachment();
-
-                    videoAttachment.Id = jVideo[PId].Value<int>();
-                    videoAttachment.OwnerId = jVideo[PAttachmentOwnerId].Value<int>();
-                    videoAttachment.Title = jVideo[PTitle].Value<string>();
-                    videoAttachment.Description = jVideo[PVideoDescription].Value<string>();
-                    videoAttachment.Duration = jVideo[PVideoDuration].Value<int>();
-                    videoAttachment.Date = EpochTimeConverter.ConvertToDateTime(jVideo[PDate].Value<long>());
-                    videoAttachment.Views = jVideo[PVideoViews].Value<int>();
-                    videoAttachment.CommentsCount = jVideo[PVideoComments].Value<int>();
-                    videoAttachment.PlayerUrl = jVideo[PVideoPlayer]?.Value<string>();
-                    videoAttachment.AccessKey = jVideo[PAttachmentAccessKey].Value<string>();
+                    var videoAttachment = new VideoAttachment
+                    {
+                        Id = jVideo[PId].Value<int>(),
+                        OwnerId = jVideo[PAttachmentOwnerId].Value<int>(),
+                        Title = jVideo[PTitle].Value<string>(),
+                        Description = jVideo[PVideoDescription].Value<string>(),
+                        Duration = jVideo[PVideoDuration].Value<int>(),
+                        Date = EpochTimeConverter.ConvertToDateTime(jVideo[PDate].Value<long>()),
+                        Views = jVideo[PVideoViews].Value<int>(),
+                        CommentsCount = jVideo[PVideoComments]?.Value<int>(),
+                        PlayerUrl = jVideo[PVideoPlayer]?.Value<string>(),
+                        AccessKey = jVideo[PAttachmentAccessKey].Value<string>()
+                    };
 
 
                     if (jVideo.ContainsKey(PVideoImage) && jVideo[PVideoImage] is JArray jImages)

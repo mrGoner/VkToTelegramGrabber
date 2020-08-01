@@ -1,6 +1,7 @@
-﻿using Telegram.Bot.Types.ReplyMarkups;
+﻿using System.Collections.Generic;
+using Telegram.Bot.Types.ReplyMarkups;
 
-namespace TelegramBot
+namespace TelegramBot.Helpers
 {
     internal static class KeyBoardBuilder
     {
@@ -20,7 +21,7 @@ namespace TelegramBot
             return keyboard;
         }
 
-        public static InlineKeyboardButton[][] BuildInlineKeyboard(string[] stringArray)
+        public static IReplyMarkup BuildInlineKeyboard(KeyValuePair<string, string>[] stringArray)
         {
             var keyboardInline = new InlineKeyboardButton[1][];
             var keyboardButtons = new InlineKeyboardButton[stringArray.Length];
@@ -28,12 +29,13 @@ namespace TelegramBot
             {
                 keyboardButtons[i] = new InlineKeyboardButton
                 {
-                    Text = stringArray[i],
-                    CallbackData = "some data"
+                    Text = stringArray[i].Key,
+                    CallbackData = stringArray[i].Value
                 };
             }
             keyboardInline[0] = keyboardButtons;
-            return keyboardInline;
+
+            return new InlineKeyboardMarkup(keyboardInline);
         }
     }
 }

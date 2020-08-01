@@ -16,7 +16,7 @@ namespace VkTools.ObjectModel.Attachments.Video
         public int Duration { get; internal set; }
         public DateTime Date { get; internal set; }
         public int Views { get; internal set; }
-        public int CommentsCount { get; internal set; }
+        public int? CommentsCount { get; internal set; }
         public string PlayerUrl { get; internal set; }
         public string AccessKey { get; internal set; }
         public Image[] Images { get; internal set; } = new Image[0];

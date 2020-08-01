@@ -1,5 +1,4 @@
-﻿using System;
-using VkApi;
+﻿using VkApi;
 using VkGrabber;
 
 namespace TelegramBot.UserHelpers
@@ -22,8 +21,8 @@ namespace TelegramBot.UserHelpers
             WorkCompleteEventHandler?.Invoke(m_userId);
 
             return new Response("/register - чтобы зарегистрироваться \n" +
-            	"/manage - для управления аккаунтом \n" +
-            	"исходники бота можно найти тут https://github.com/mrGoner/VkToTelegramGrabber");
+                "/manage - для управления аккаунтом \n" +
+                "исходники бота можно найти тут https://github.com/mrGoner/VkToTelegramGrabber");
         }
     }
 }
