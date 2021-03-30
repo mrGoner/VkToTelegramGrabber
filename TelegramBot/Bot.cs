@@ -6,6 +6,7 @@ using Telegram.Bot.Args;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.InputFiles;
 using System.Linq;
+using System.Threading.Tasks;
 using VkGrabber;
 using VkApi;
 using VkGrabber.Model;
@@ -16,19 +17,19 @@ using Telegram.Bot.Exceptions;
 
 namespace TelegramBot
 {
-    public class Bot
+    public class Bot : IDisposable
     {
         private readonly TelegramBotClient m_telegramBot;
-        public readonly UserManager m_userManager;
+        private readonly UserManager m_userManager;
         private readonly Grabber m_grabber;
         private readonly Vk m_vkApi;
         private readonly Dictionary<long, IUserHelper> m_registeredHelpers;
         private readonly IUserHelperSelector m_helperSelector;
-        private readonly string m_botName;
-        private const string m_apiVersion = "5.103";
+        private string m_botName;
+        private const string ApiVersion = "5.103";
         private readonly MessageQueue m_messageQueue;
 
-        public Bot(string _token, IUserHelperSelector _helperSelector, IWebProxy _proxy = null)
+        public Bot(string _token, IUserHelperSelector _helperSelector = null, IWebProxy _proxy = null)
         {
             m_telegramBot = new TelegramBotClient(_token, _proxy);
             m_registeredHelpers = new Dictionary<long, IUserHelper>();
@@ -42,21 +43,30 @@ namespace TelegramBot
             new DefaultHelper());
 
             m_userManager = new UserManager();
-            m_grabber = new Grabber(m_apiVersion, TimeSpan.FromMinutes(15));
-            m_grabber.Start();
-            m_vkApi = new Vk(m_apiVersion);
-            m_messageQueue = new MessageQueue(TimeSpan.FromSeconds(7), 4, SendMessage);
-
+            m_grabber = new Grabber(ApiVersion, TimeSpan.FromMinutes(15));
+            
+            m_vkApi = new Vk(ApiVersion);
+            m_messageQueue = new MessageQueue(TimeSpan.FromSeconds(10), 4, SendMessage);
+            
             m_telegramBot.OnMessage += TelegramBot_OnMessage;
             m_telegramBot.OnCallbackQuery += TelegramBot_OnCallbackQuery;
-
             m_grabber.NewDataGrabbedEventHandler += Grabber_NewDataGrabbedEventHandler;
+        }
 
-            m_botName = m_telegramBot.GetMeAsync().Result.Username;
+        public async Task Start()
+        {
+            m_grabber.Start();
+            m_botName = (await m_telegramBot.GetMeAsync()).Username;
 
             Console.WriteLine($"Bot name: {m_botName}");
-
+            
             m_telegramBot.StartReceiving();
+        }
+
+        public void Stop()
+        {
+            m_grabber.Stop();
+            m_telegramBot.StopReceiving();
         }
 
         private async void TelegramBot_OnCallbackQuery(object _sender, CallbackQueryEventArgs _e)
@@ -141,12 +151,12 @@ namespace TelegramBot
             }
         }
 
-        private void SendMessage(long _userId, Post _post)
+        private async Task SendMessage(long _userId, Post _post)
         {
             if (_post is null)
                 throw new ArgumentNullException(nameof(_post));
 
-            var text = string.Format("Группа: {0} \n \n {1}", _post.GroupName, _post.Text);
+            var text = $"Группа: {_post.GroupName} \n \n {_post.Text}";
 
             var serializedLikeInfo = PostLikeHelper.SerializeInfo(new LikeInfo
             {
@@ -157,7 +167,7 @@ namespace TelegramBot
             var likeButton = KeyBoardBuilder.BuildInlineKeyboard(new[] { new KeyValuePair<string, string>("❤", serializedLikeInfo) });
 
             if (!_post.Items.Any())
-                m_telegramBot.SendTextMessageAsync(_userId, text, replyMarkup: likeButton);
+                await m_telegramBot.SendTextMessageAsync(_userId, text, replyMarkup: likeButton);
             else
             {
                 if (_post.Items.Length == 1)
@@ -165,24 +175,24 @@ namespace TelegramBot
                     switch (_post.Items.First())
                     {
                         case ImageItem imageItem:
-                            m_telegramBot.SendPhotoAsync(_userId,
+                            await m_telegramBot.SendPhotoAsync(_userId,
                                 new InputOnlineFile(imageItem.UrlMedium ?? imageItem.UrlSmall), text, replyMarkup: likeButton);
                             break;
                         case VideoItem videoItem:
-                            m_telegramBot.SendTextMessageAsync(_userId, $"{text}\n{videoItem.Url}", replyMarkup: likeButton);
+                            await m_telegramBot.SendTextMessageAsync(_userId, $"{text}\n{videoItem.Url}", replyMarkup: likeButton);
                             break;
                         case DocumentItem documentItem:
-                            m_telegramBot.SendDocumentAsync(_userId,
+                            await m_telegramBot.SendDocumentAsync(_userId,
                                 new InputOnlineFile(documentItem.Url), $"{text}\n{documentItem.Title}", replyMarkup: likeButton);
                             break;
                         case LinkItem linkItem:
-                            m_telegramBot.SendTextMessageAsync(_userId, $"{text}\n{linkItem.Url}", replyMarkup: likeButton);
+                            await m_telegramBot.SendTextMessageAsync(_userId, $"{text}\n{linkItem.Url}", replyMarkup: likeButton);
                             break;
                     }
                 }
                 else
                 {
-                    m_telegramBot.SendTextMessageAsync(_userId, text, replyMarkup: likeButton);
+                    await m_telegramBot.SendTextMessageAsync(_userId, text, replyMarkup: likeButton);
 
                     var media = new List<IAlbumInputMedia>();
 
@@ -201,7 +211,7 @@ namespace TelegramBot
                         }
                     }
                     if (media.Any())
-                        m_telegramBot.SendMediaGroupAsync(media, _userId);
+                        await m_telegramBot.SendMediaGroupAsync(media, _userId);
                 }
             }
         }
@@ -256,6 +266,13 @@ namespace TelegramBot
             var helper = m_registeredHelpers.FirstOrDefault(_x => _x.Key == _userKey);
 
             m_registeredHelpers.Remove(helper.Key);
+        }
+
+        public void Dispose()
+        {
+            m_telegramBot.OnMessage -= TelegramBot_OnMessage;
+            m_telegramBot.OnCallbackQuery -= TelegramBot_OnCallbackQuery;
+            m_grabber.NewDataGrabbedEventHandler -= Grabber_NewDataGrabbedEventHandler;
         }
     }
 }
