@@ -21,5 +21,7 @@ namespace VkTools.ObjectModel.Attachments.Video
         public string AccessKey { get; internal set; }
         public Image[] Images { get; internal set; } = new Image[0];
         public Image[] FirstFrames { get; internal set; } = new Image[0];
+        public bool IsContentRestricted { get; set; }
+        public string ContentRestrictedMessage { get; set; }
     }
 }

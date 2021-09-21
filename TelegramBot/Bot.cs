@@ -179,7 +179,8 @@ namespace TelegramBot
                                 new InputOnlineFile(imageItem.UrlMedium ?? imageItem.UrlSmall), text, replyMarkup: likeButton);
                             break;
                         case VideoItem videoItem:
-                            await m_telegramBot.SendTextMessageAsync(_userId, $"{text}\n{videoItem.Url}", replyMarkup: likeButton);
+                            if (!string.IsNullOrEmpty(videoItem.Url))
+                                await m_telegramBot.SendTextMessageAsync(_userId, $"{text}\n{videoItem.Url}", replyMarkup: likeButton);
                             break;
                         case DocumentItem documentItem:
                             await m_telegramBot.SendDocumentAsync(_userId,
@@ -205,7 +206,7 @@ namespace TelegramBot
                                     new InputMedia(imageItem.UrlLarge ?? imageItem.UrlMedium ?? imageItem.UrlSmall)));
                                 break;
                             case VideoItem videoItem:
-                                if (string.IsNullOrEmpty(videoItem.Url))
+                                if (!string.IsNullOrEmpty(videoItem.Url))
                                     media.Add(new InputMediaVideo(new InputMedia(videoItem.Url)));
                                 break;
                         }

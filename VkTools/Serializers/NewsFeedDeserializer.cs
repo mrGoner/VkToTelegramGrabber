@@ -76,6 +76,8 @@ namespace VkTools.Serializers
         public const string PSourceId = "source_id";
         public const string PVideoImage = "image";
         public const string PVideoFirstFrame = "first_frame";
+        public const string PVideoContentRestricted = "content_restricted";
+        public const string PVideoContentRestrictedMessage = "content_restricted_message";
 
         #endregion
 
@@ -131,7 +133,9 @@ namespace VkTools.Serializers
                 post.Comments = ParseComments((JObject)_jPostItem[PComments]);
                 post.Likes = ParseLikes((JObject)_jPostItem[PLikes]);
                 post.Reposts = ParseReposts((JObject)_jPostItem[PReposts]);
-                post.Views = ParseViews((JObject)_jPostItem[PViews]);
+
+                if (_jPostItem.ContainsKey(PViews))
+                    post.Views = ParseViews((JObject) _jPostItem[PViews]);
 
                 var rawHistoryElem = _jPostItem[PCopyHistrory];
 
@@ -445,39 +449,35 @@ namespace VkTools.Serializers
                         Id = jVideo[PId].Value<int>(),
                         OwnerId = jVideo[PAttachmentOwnerId].Value<int>(),
                         Title = jVideo[PTitle].Value<string>(),
-                        Description = jVideo[PVideoDescription].Value<string>(),
+                        Description = jVideo[PVideoDescription]?.Value<string>(),
                         Duration = jVideo[PVideoDuration].Value<int>(),
                         Date = EpochTimeConverter.ConvertToDateTime(jVideo[PDate].Value<long>()),
                         Views = jVideo[PVideoViews].Value<int>(),
                         CommentsCount = jVideo[PVideoComments]?.Value<int>(),
                         PlayerUrl = jVideo[PVideoPlayer]?.Value<string>(),
-                        AccessKey = jVideo[PAttachmentAccessKey].Value<string>()
+                        AccessKey = jVideo[PAttachmentAccessKey].Value<string>(),
+                        IsContentRestricted = jVideo.ContainsKey(PVideoContentRestricted),
+                        ContentRestrictedMessage = jVideo[PVideoContentRestrictedMessage]?.Value<string>()
                     };
 
 
                     if (jVideo.ContainsKey(PVideoImage) && jVideo[PVideoImage] is JArray jImages)
                     {
-                        videoAttachment.Images = jImages.Select(_x =>
+                        videoAttachment.Images = jImages.Select(_x => new Image
                         {
-                            return new Image
-                            {
-                                Height = _x[PSizesHeight].Value<int>(),
-                                Width = _x[PSizesWidth].Value<int>(),
-                                Url = _x[PUrl].Value<string>()
-                            };
+                            Height = _x[PSizesHeight].Value<int>(),
+                            Width = _x[PSizesWidth].Value<int>(),
+                            Url = _x[PUrl].Value<string>()
                         }).ToArray();
                     }
 
                     if (jVideo.ContainsKey(PVideoFirstFrame) && jVideo[PVideoFirstFrame] is JArray jFrames)
                     {
-                        videoAttachment.FirstFrames = jFrames.Select(_x =>
+                        videoAttachment.FirstFrames = jFrames.Select(_x => new Image
                         {
-                            return new Image
-                            {
-                                Height = _x[PSizesHeight].Value<int>(),
-                                Width = _x[PSizesWidth].Value<int>(),
-                                Url = _x[PUrl].Value<string>()
-                            };
+                            Height = _x[PSizesHeight].Value<int>(),
+                            Width = _x[PSizesWidth].Value<int>(),
+                            Url = _x[PUrl].Value<string>()
                         }).ToArray();
                     }
 
@@ -547,7 +547,7 @@ namespace VkTools.Serializers
                     var linkAttachment = new LinkAttachment();
 
                     linkAttachment.Title = jLink[PTitle].Value<string>();
-                    linkAttachment.Description = jLink[PLinkDescription].Value<string>();
+                    linkAttachment.Description = jLink[PLinkDescription]?.Value<string>();
                     linkAttachment.Url = jLink[PUrl].Value<string>();
                     linkAttachment.AccessKey = jLink[PAttachmentAccessKey]?.Value<string>();
 

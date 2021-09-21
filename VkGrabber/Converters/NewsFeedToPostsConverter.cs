@@ -78,6 +78,8 @@ namespace VkGrabber.Converters
                             items.Add(new LinkItem(link.Url));
                             break;
                         case VkTools.ObjectModel.Attachments.Video.VideoAttachment video:
+                            if (video.IsContentRestricted || string.IsNullOrEmpty(video.PlayerUrl))
+                                continue;
                             items.Add(new VideoItem(video.Title, video.PlayerUrl));
                             break;
                     }
