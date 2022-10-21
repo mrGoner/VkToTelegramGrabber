@@ -158,7 +158,7 @@ namespace VkGrabber
                         context.SaveChanges();
                     }
 
-                    throw ex;
+                    throw;
                 }
             }
             catch (Exception ex)
