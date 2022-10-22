@@ -15,7 +15,7 @@ namespace VkTools
         {
             var span = _dateTime - m_startTime;
 
-            var seconds = (long) span.TotalSeconds;
+            var seconds = (long)span.TotalSeconds;
 
             return seconds;
         }

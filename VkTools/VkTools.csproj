@@ -4,10 +4,6 @@
     <TargetFramework>net6.0</TargetFramework>
     <LangVersion>latestmajor</LangVersion>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-  </ItemGroup>
   <ItemGroup>
     <Folder Include="Serializers\" />
     <Folder Include="ObjectModel\" />

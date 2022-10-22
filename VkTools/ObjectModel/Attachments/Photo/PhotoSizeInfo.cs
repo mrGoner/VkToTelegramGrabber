@@ -1,18 +1,19 @@
-﻿namespace VkTools.ObjectModel.Attachments.Photo
+﻿using System.Text.Json.Serialization;
+
+namespace VkTools.ObjectModel.Attachments.Photo
 {
     public struct PhotoSizeInfo
     {
-        public PhotoSizeType Type { get; }
-        public string Url { get; }
-        public int Width { get; }
-        public int Height { get; }
-
-        public PhotoSizeInfo(PhotoSizeType _type, string _url, int _width, int _heigh)
-        {
-            Type = _type;
-            Url = _url;
-            Width = _width;
-            Height = _heigh;
-        }
+        [JsonPropertyName("type")]
+        public PhotoSizeType Type { get; set;}
+        
+        [JsonPropertyName("url")]
+        public string Url { get; set;}
+        
+        [JsonPropertyName("width")]
+        public int Width { get; set; }
+        
+        [JsonPropertyName("height")]
+        public int Height { get; set; }
     }
 }
