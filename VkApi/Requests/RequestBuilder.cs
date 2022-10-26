@@ -1,5 +1,8 @@
 ﻿using System;
-using VkTools;
+using VkApi.Converters;
+using VkApi.ObjectModel;
+using VkApi.Extensions;
+using System.Linq;
 
 namespace VkApi.Requests
 {
@@ -65,28 +68,7 @@ namespace VkApi.Requests
             if (string.IsNullOrWhiteSpace(_apiVersion))
                 throw new ArgumentException("Api version can not be null or white space!");
 
-            var scope = "";
-
-            if (_permissions.HasFlag(Permissions.Friends))
-                scope += "friends,";
-            if (_permissions.HasFlag(Permissions.Photos))
-                scope += "photos,";
-            if (_permissions.HasFlag(Permissions.Audio))
-                scope += "audio,";
-            if (_permissions.HasFlag(Permissions.Video))
-                scope += "video,";
-            if (_permissions.HasFlag(Permissions.Messages))
-                scope += "messages,";
-            if (_permissions.HasFlag(Permissions.Offline))
-                scope += "offline,";
-            if (_permissions.HasFlag(Permissions.Groups))
-                scope += "groups,";
-            if (_permissions.HasFlag(Permissions.Docs))
-                scope += "docs,";
-            if (_permissions.HasFlag(Permissions.Wall))
-                scope += "wall";
-
-            scope = scope.TrimEnd(',');
+            var scope = string.Join(',', _permissions.GetFlags().Select(_x=> _x.ToString().ToLowerInvariant()));
 
             var url = string.Format(m_urlTemplate, _applicationId, _apiVersion, scope);
 
@@ -98,7 +80,7 @@ namespace VkApi.Requests
             if (string.IsNullOrWhiteSpace(_token))
                 throw new ArgumentException("Token can not be null or empty", nameof(_token));
 
-            var url = string.Format(m_addLikeTemplate, _type.ToString().ToLowerInvariant(), _ownerId, _itemId, _token, _apiVersion);
+            var url = string.Format(m_addLikeTemplate, _type.ConvertToSnakeCase(), _ownerId, _itemId, _token, _apiVersion);
 
             return url;
         }

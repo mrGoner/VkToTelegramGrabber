@@ -1,58 +1,57 @@
 ﻿using System;
+using VkApi.ObjectModel;
+using VkApi.ObjectModel.Wall;
 using VkApi.Requests;
-using VkTools.Serializers;
-using VkTools.ObjectModel.Wall;
-using VkTools.ObjectModel;
+using VkApi.Serializers;
+using RestSharp;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace VkApi
 {
     public class Vk
     {
-        private readonly RequestExecutor m_requestExecutor;
         private readonly NewsFeedDeserializer m_newsFeedDeserializer;
         private readonly GroupsDeserializer m_groupsDeserializer;
         private readonly LikesDeserializer m_likesDeserializer;
-        private readonly string m_currentVkVersion;
-        private const string m_baseUrl = "https://api.vk.com/method";
+        private const string CurrentVkVersion = "5.131";
+        private const string BaseUrl = "https://api.vk.com/method";
 
-        public Vk(string _version)
+        public Vk()
         {
-            if (string.IsNullOrWhiteSpace(_version))
-                throw new ArgumentException("Version not recognized as valid vk version!");
-
-            m_currentVkVersion = _version;
-            m_requestExecutor = new RequestExecutor(m_baseUrl);
             m_newsFeedDeserializer = new NewsFeedDeserializer();
             m_groupsDeserializer = new GroupsDeserializer();
             m_likesDeserializer = new LikesDeserializer();
         }
 
-        public NewsFeed GetNewsFeed(string _userToken, DateTime _start, DateTime _end, string _sourceIds)
+        public async Task<NewsFeed> GetNewsFeedAsync(string _userToken, DateTime _start, DateTime _end, string _sourceIds, CancellationToken cancellationToken)
         {
             try
             {
-                var request = RequestBuilder.BuildNewsFeedRequest(_userToken, m_currentVkVersion,
+                var request = RequestBuilder.BuildNewsFeedRequest(_userToken, CurrentVkVersion,
                                  _start, _end, _sourceIds);
 
-                var responseData = m_requestExecutor.Execute(request);
+                using var requestExecutor = new RestClient(BaseUrl);
 
-                var getVideoFunc = new Func<VideoInfo, string>((_arg) =>
-                {
-                    try
-                    {
-                        var getVideoRequest = RequestBuilder.BuildGetVideoRequest(_userToken, m_currentVkVersion, _arg.OwnerId, _arg.VideoId);
+                var responseData = await requestExecutor.ExecuteGetAsync(new RestRequest(request), cancellationToken);
 
-                        var videoResponseData = m_requestExecutor.Execute(getVideoRequest);
+                var newsFeed = m_newsFeedDeserializer.Deserialize(responseData.Content);
 
-                        return videoResponseData;
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new VkException("Failed to get video", ex);
-                    }
-                });
+                // var getVideoFunc = new Func<VideoInfo, string>((_arg) =>
+                // {
+                //     try
+                //     {
+                //         var getVideoRequest = RequestBuilder.BuildGetVideoRequest(_userToken, CurrentVkVersion, _arg.OwnerId, _arg.VideoId);
 
-                var newsFeed = m_newsFeedDeserializer.Deserialize(responseData, getVideoFunc);
+                //         var videoResponseData = m_requestExecutor.Execute(getVideoRequest, cancellationToken);
+
+                //         return videoResponseData;
+                //     }
+                //     catch (Exception ex)
+                //     {
+                //         throw new VkException("Failed to get video", ex);
+                //     }
+                // });
 
                 return newsFeed;
             }
@@ -62,15 +61,17 @@ namespace VkApi
             }
         }
 
-        public Groups GetGroups(string _userToken, int _count)
+        public async Task<Groups> GetGroupsAsync(string _userToken, int _count, CancellationToken cancellationToken)
         {
             try
             {
-                var request = RequestBuilder.BuildGroupRequest(_userToken, m_currentVkVersion, _count);
+                var request = RequestBuilder.BuildGroupRequest(_userToken, CurrentVkVersion, _count);
 
-                var responseData = m_requestExecutor.Execute(request);
+                using var requestExecutor = new RestClient(BaseUrl);
 
-                var groups = m_groupsDeserializer.Deserialize(responseData);
+                var responseData = await requestExecutor.ExecuteGetAsync(new RestRequest(request), cancellationToken);
+
+                var groups = m_groupsDeserializer.Deserialize(responseData.Content);
 
                 return groups;
             }
@@ -80,15 +81,17 @@ namespace VkApi
             }
         }
 
-        public int LikePost(int _itemOwner, uint _itemId, string _userToken)
+        public async Task<int> LikePostAsync(int _itemOwner, uint _itemId, string _userToken, CancellationToken cancellationToken)
         {
             try
             {
-                var request = RequestBuilder.BuildLikeRequest(LikeType.Post, _itemOwner, _itemId, _userToken, m_currentVkVersion);
+                var request = RequestBuilder.BuildLikeRequest(LikeType.Post, _itemOwner, _itemId, _userToken, CurrentVkVersion);
 
-                var responseData = m_requestExecutor.Execute(request);
+                using var requestExecutor = new RestClient(BaseUrl);
 
-                var likesCount = m_likesDeserializer.ParseLikesCount(responseData);
+                var responseData = await requestExecutor.ExecuteGetAsync(new RestRequest(request), cancellationToken);
+
+                var likesCount = m_likesDeserializer.ParseLikesCount(responseData.Content);
 
                 return likesCount;
             }
@@ -100,7 +103,7 @@ namespace VkApi
 
         public string GetAuthUrl(int _applicationId, Permissions _permissions)
         {
-            return RequestBuilder.BuildAuthString(_applicationId, _permissions, m_currentVkVersion);
+            return RequestBuilder.BuildAuthString(_applicationId, _permissions, CurrentVkVersion);
         }
     }
 }

@@ -22,7 +22,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VkApi\VkApi.csproj" />
-    <ProjectReference Include="..\VkTools\VkTools.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="logger.config" />

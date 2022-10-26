@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using VkGrabber.DataLayer;
 
 namespace VkGrabber
@@ -7,53 +10,50 @@ namespace VkGrabber
     public class UserManager
     {
         //подумать про проверку токена
-        public void AddUser(string _key, string _token)
+        public async Task AddUserAsync(string _key, string _token, CancellationToken _cancellationToken)
         {
-            using (var context = new GrabberDbContext())
+            await using var context = new GrabberDbContext();
+            var existUser =
+                await context.DbUsers.FirstOrDefaultAsync(_dbUser => _dbUser.Key == _key, _cancellationToken);
+
+            if (existUser == null)
             {
-                var existUser = context.DbUsers.FirstOrDefault(_dbUser => _dbUser.Key == _key);
-
-                if (existUser == null)
+                var dbUser = new DbUser
                 {
-                    var dbUser = new DbUser
-                    {
-                        Token = _token,
-                        Key = _key
-                    };
+                    Token = _token,
+                    Key = _key
+                };
 
-                    context.DbUsers.Add(dbUser);
+                context.DbUsers.Add(dbUser);
 
-                    context.SaveChanges();
-                }
-                else
-                    throw new ArgumentException("User already exists!");
+                await context.SaveChangesAsync(_cancellationToken);
             }
+            else
+                throw new InvalidOperationException("User already exists!");
         }
 
-        public User GetUser(string _key)
+        public async Task<User> GetUserAsync(string _key, CancellationToken _cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(_key))
                 throw new ArgumentException("Key can not be null or white space!", nameof(_key));
 
-            using (var context = new GrabberDbContext())
-            {
-                var dbUser = context.DbUsers.FirstOrDefault(_user => _user.Key == _key);
+            await using var context = new GrabberDbContext();
+            var dbUser = await context.DbUsers.FirstOrDefaultAsync(_user => _user.Key == _key, _cancellationToken);
 
-                if (dbUser != null)
-                {
-                    var userGroups =
-                    context.DbGroups.Where(_dbGroup => _dbGroup.DbUser.Id == dbUser.Id).Select(_dbGroup =>
-                        new Group(_dbGroup.GroupId, _dbGroup.UpdatePeriod, _dbGroup.GroupName)).ToArray();
-                    var user = new User(dbUser.Token, dbUser.Key, userGroups);
-
-                    return user;
-                }
-
+            if (dbUser == null)
                 return null;
-            }
+
+            var userGroups = await context.DbGroups.Where(_dbGroup => _dbGroup.DbUser.Id == dbUser.Id).Select(
+                    _dbGroup =>
+                        new Group(_dbGroup.GroupId, _dbGroup.UpdatePeriod, _dbGroup.GroupName))
+                .ToArrayAsync(_cancellationToken);
+
+            var user = new User(dbUser.Token, dbUser.Key, userGroups);
+
+            return user;
         }
 
-        public void AddGroupToUser(string _key, Group _group)
+        public async Task AddGroupToUser(string _key, Group _group, CancellationToken _cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(_key))
                 throw new ArgumentException("Key can not be null or white space!", nameof(_key));
@@ -61,73 +61,68 @@ namespace VkGrabber
             if (_group == null)
                 throw new ArgumentNullException(nameof(_group));
 
-            using (var context = new GrabberDbContext())
+            await using var context = new GrabberDbContext();
+            var dbUser = await context.DbUsers.FirstOrDefaultAsync(_dbUser => _dbUser.Key == _key, _cancellationToken);
+
+            if (dbUser == null)
+                throw new ArgumentException($"User with key {_key} not found!");
+
+            var existedGroup = await context.DbGroups.FirstOrDefaultAsync(_dbGroup =>
+                _dbGroup.GroupId == _group.GroupId && _dbGroup.DbUser.Id == dbUser.Id, _cancellationToken);
+
+            if (existedGroup == null)
             {
-                var dbUser = context.DbUsers.FirstOrDefault(_dbUser => _dbUser.Key == _key);
-
-                if (dbUser == null)
-                    throw new ArgumentException($"User with key {_key} not found!");
-
-                var existedGroup = context.DbGroups.FirstOrDefault(_dbGroup => 
-                    _dbGroup.GroupId == _group.GroupId && _dbGroup.DbUser.Id == dbUser.Id);
-
-                if (existedGroup == null)
+                var dbGroup = new DbGroup
                 {
-                    var dbGroup = new DbGroup
-                    {
-                        GroupId = _group.GroupId,
-                        GroupPrefix = _group.Prefix,
-                        GroupName = _group.Name,
-                        UpdatePeriod = _group.UpdatePeriod,
-                        DbUser = dbUser,
-                        LastUpdateDateTime = DateTime.Now.ToUniversalTime()
-                    };
+                    GroupId = _group.GroupId,
+                    GroupPrefix = _group.Prefix,
+                    GroupName = _group.Name,
+                    UpdatePeriod = _group.UpdatePeriod,
+                    DbUser = dbUser,
+                    LastUpdateDateTime = DateTime.Now.ToUniversalTime()
+                };
 
-                    context.DbGroups.Add(dbGroup);
-                }
-                else
-                    throw new ArgumentException($"User already has group with id {_group.GroupId}");
-
-                context.SaveChanges();
+                await context.DbGroups.AddAsync(dbGroup, _cancellationToken);
             }
+            else
+                throw new InvalidOperationException($"User already has group with id {_group.GroupId}");
+
+            await context.SaveChangesAsync(_cancellationToken);
         }
 
-        public bool RemoveUser(string _key)
+        public async Task<bool> RemoveUser(string _key, CancellationToken _cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(_key))
                 throw new ArgumentException("Key can not be null or white space!", nameof(_key));
 
-            using (var context = new GrabberDbContext())
-            {
-                var dbUser = context.DbUsers.FirstOrDefault(_dbUser => _dbUser.Key == _key);
+            await using var context = new GrabberDbContext();
+            var dbUser = await context.DbUsers.FirstOrDefaultAsync(_dbUser => _dbUser.Key == _key, _cancellationToken);
 
-                if (dbUser == null)
-                    return false;
+            if (dbUser == null)
+                return false;
 
-                var userGroups = context.DbGroups.Where(_dbGroup => _dbGroup.DbUser.Id == dbUser.Id).ToArray();
-                context.DbGroups.RemoveRange(userGroups);
+            var userGroups = await context.DbGroups.Where(_dbGroup => _dbGroup.DbUser.Id == dbUser.Id)
+                .ToArrayAsync(_cancellationToken);
+            context.DbGroups.RemoveRange(userGroups);
 
-                context.DbUsers.Remove(dbUser);
+            context.DbUsers.Remove(dbUser);
 
-                context.SaveChanges();
+            await context.SaveChangesAsync(_cancellationToken);
 
-                return true;
-            }
+            return true;
         }
 
         public User[] GetUsers()
         {
-            using (var context = new GrabberDbContext())
-            {
-                var users = context.DbUsers.Select(_dbUser => new User(_dbUser.Token, _dbUser.Key,
-                    context.DbGroups.Where(_dbGroup => _dbGroup.DbUser.Id == _dbUser.Id).Select(_dbGroup =>
-                        new Group(_dbGroup.GroupId, _dbGroup.UpdatePeriod, _dbGroup.GroupName)).ToArray()));
+            using var context = new GrabberDbContext();
+            var users = context.DbUsers.Include(x => x.DbGroups).Select(_dbUser => new User(_dbUser.Token, _dbUser.Key,
+                _dbUser.DbGroups.Select(_dbGroup =>
+                    new Group(_dbGroup.GroupId, _dbGroup.UpdatePeriod, _dbGroup.GroupName)).ToArray()));
 
-                return users.ToArray();
-            }
+            return users.ToArray();
         }
 
-        public bool RemoveGroupFromUser(string _key, Group _group)
+        public async Task<bool> RemoveGroupFromUser(string _key, Group _group, CancellationToken _cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(_key))
                 throw new ArgumentException("Key can not be null or white space!", nameof(_key));
@@ -135,29 +130,24 @@ namespace VkGrabber
             if (_group == null)
                 throw new ArgumentNullException(nameof(_group));
 
-            using (var context = new GrabberDbContext())
-            {
-               var dbUser = context.DbUsers.FirstOrDefault(_dbUser => _dbUser.Key == _key);
+            await using var context = new GrabberDbContext();
+            var dbUser = await context.DbUsers.FirstOrDefaultAsync(_dbUser => _dbUser.Key == _key, _cancellationToken);
 
-                if (dbUser != null)
-                {
-                    var dbGroup = context.DbGroups.FirstOrDefault(_dbGroup =>
-                        _dbGroup.GroupPrefix == _group.Prefix && 
-                        _dbGroup.GroupId == _group.GroupId && 
-                        _dbGroup.DbUser.Id == dbUser.Id);
+            if (dbUser == null)
+                throw new InvalidOperationException("Failed find user");
 
-                    if (dbGroup != null)
-                    {
-                        context.DbGroups.Remove(dbGroup);
+            var dbGroup = context.DbGroups.FirstOrDefault(_dbGroup =>
+                _dbGroup.GroupPrefix == _group.Prefix &&
+                _dbGroup.GroupId == _group.GroupId &&
+                _dbGroup.DbUser.Id == dbUser.Id);
 
-                        context.SaveChanges();
-
-                        return true;
-                    }
-                }
-
+            if (dbGroup == null)
                 return false;
-            }
+
+            context.DbGroups.Remove(dbGroup);
+            await context.SaveChangesAsync(_cancellationToken);
+
+            return true;
         }
     }
 }

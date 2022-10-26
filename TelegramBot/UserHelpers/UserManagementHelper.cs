@@ -3,10 +3,11 @@ using VkGrabber;
 using Telegram.Bot.Types.ReplyMarkups;
 using VkApi;
 using System.Text;
-using VkTools.ObjectModel;
-using Group = VkTools.ObjectModel.Group;
+using Group = VkApi.ObjectModel.Group;
 using System.Linq;
+using System.Threading;
 using TelegramBot.Helpers;
+using VkApi.ObjectModel;
 
 namespace TelegramBot.UserHelpers
 {
@@ -38,7 +39,7 @@ namespace TelegramBot.UserHelpers
         {
             try
             {
-                var user = m_userManager.GetUser(m_userId.ToString());
+                var user = m_userManager.GetUserAsync(m_userId.ToString(), CancellationToken.None).Result;
 
                 if (user == null)
                 {
@@ -54,7 +55,7 @@ namespace TelegramBot.UserHelpers
 
                     builder.AppendLine("Пришли мне ID группы для добавления из списка ниже");
 
-                    m_rawGroups = m_vkApi.GetGroups(user.Token, 100);
+                    m_rawGroups = m_vkApi.GetGroupsAsync(user.Token, 100, CancellationToken.None).Result;
 
                     foreach (var userGroup in user.Groups)
                     {
@@ -108,7 +109,7 @@ namespace TelegramBot.UserHelpers
 
                     if (int.TryParse(_message, out var removeIndex) && removeIndex >= 0 && user.Groups.Length - 1 >= removeIndex)
                     {
-                        m_userManager.RemoveGroupFromUser(user.Key, user.Groups[removeIndex]);
+                        _ = m_userManager.RemoveGroupFromUser(user.Key, user.Groups[removeIndex], CancellationToken.None).Result;
 
                         return new Response("Удалено!", m_generalMarkup);
                     }
@@ -141,7 +142,7 @@ namespace TelegramBot.UserHelpers
                         span >= TimeSpan.FromMinutes(15))
                     {
                         m_userManager.AddGroupToUser(user.Key,
-                            new VkGrabber.Group(m_selectedGroup.Id, span, m_selectedGroup.Name));
+                            new VkGrabber.Group(m_selectedGroup.Id, span, m_selectedGroup.Name), CancellationToken.None).Wait();
 
                         return new Response("Добавлено!", m_generalMarkup);
                     }

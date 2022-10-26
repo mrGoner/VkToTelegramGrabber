@@ -7,27 +7,42 @@ using System.Timers;
 using VkGrabber.Converters;
 using VkGrabber.Model;
 using static VkGrabber.MyLogger;
+using System.Threading.Tasks;
+using System.Threading;
+using Microsoft.EntityFrameworkCore;
 
 namespace VkGrabber
 {
-    public class Grabber
+    public class Grabber : IDisposable
     {
         private readonly Processor m_processor;
         public delegate void NewDataGrabbed(string _userKey, Posts _posts);
         public event NewDataGrabbed NewDataGrabbedEventHandler;
         private readonly Vk m_vkApi;
-        private readonly Timer m_updateTimer;
+        private readonly System.Timers.Timer m_updateTimer;
         private readonly NewsFeedToPostsConverter m_feedToPostsConverter;
         private readonly PostComparer m_postComparer = new PostComparer();
+        private readonly CancellationTokenSource m_tokenSource;
 
-        public Grabber(string _vkVersion, TimeSpan _updateSpan)
+        public Grabber(TimeSpan _updateSpan, int _maxPerformed, int _bufferCapacity)
         {
-            m_processor = new Processor(20);
-            m_vkApi = new Vk(_vkVersion);
-            m_updateTimer = new Timer(_updateSpan.TotalMilliseconds);
+            if (_maxPerformed <= 0)
+                throw new ArgumentOutOfRangeException($"{nameof(_maxPerformed)} must be greater than zero");
+            
+            if(_bufferCapacity <= 0)
+                throw new ArgumentOutOfRangeException($"{nameof(_bufferCapacity)} must be greater than zero");
+
+            if (_updateSpan == default)
+                throw new ArgumentException($"{nameof(_updateSpan)} must be set");
+            
+            m_processor = new Processor(_maxPerformed, _bufferCapacity);
+            m_vkApi = new Vk();
+            m_updateTimer = new System.Timers.Timer(_updateSpan.TotalMilliseconds);
             m_updateTimer.Elapsed += UpdateTimer_Elapsed;
             m_feedToPostsConverter = new NewsFeedToPostsConverter();
-            Log.Info($"Grabber inited with vk version: {_vkVersion}, updated span: {_updateSpan}");
+            m_tokenSource = new CancellationTokenSource();
+            
+            Log.Info($"Grabber init with update interval: {_updateSpan}");
         }
 
         public void Start()
@@ -40,48 +55,51 @@ namespace VkGrabber
             m_updateTimer.Stop();
         }
 
-        private void UpdateTimer_Elapsed(object sender, ElapsedEventArgs e)
+        private async void UpdateTimer_Elapsed(object _sender, ElapsedEventArgs _e)
         {
             m_updateTimer.Stop();
 
             try
             {
-                using (var context = new GrabberDbContext())
+                await using var context = new GrabberDbContext();
+                foreach (var dbUser in await context.DbUsers.ToListAsync())
                 {
-                    foreach (var dbUser in context.DbUsers.ToList())
+                    var dtNow = DateTime.Now.ToUniversalTime();
+
+                    var groupsToUpdate = await context.DbGroups.Where(_dbGroup =>
+                        (_dbGroup.LastUpdateDateTime + _dbGroup.UpdatePeriod) < dtNow &&
+                        _dbGroup.DbUser.Id == dbUser.Id && !_dbGroup.IsUpdating).ToListAsync();
+
+                    if (groupsToUpdate.Any())
                     {
-                        var dtNow = DateTime.Now.ToUniversalTime();
+                        var startDateTime = groupsToUpdate.Select(_group => _group.LastUpdateDateTime).Min();
 
-                        var groupsToUpdate = context.DbGroups.ToList().Where(_dbGroup =>
-                                (_dbGroup.LastUpdateDateTime + _dbGroup.UpdatePeriod) < dtNow &&
-                                _dbGroup.DbUser.Id == dbUser.Id && !_dbGroup.IsUpdating).ToList();
+                        groupsToUpdate.ForEach(_group => _group.IsUpdating = true);
 
-                        if (groupsToUpdate.Any())
-                        {
-                            var startDateTime = groupsToUpdate.Select(_group => _group.LastUpdateDateTime).Min();
-
-                            groupsToUpdate.ForEach(_group => _group.IsUpdating = true);
-
-                            m_processor.Add(() => GetPostsFromGroup(dbUser, startDateTime, dtNow, groupsToUpdate));
-                        }
+                        await m_processor.AddAsync(async () => await GetPostsFromGroup(
+                            new UserInfo(dbUser.Id, dbUser.Key, dbUser.Token), startDateTime, dtNow,
+                            groupsToUpdate.Select(_x => new GroupInfo(_x.GroupPrefix, _x.GroupId, _x.GroupName)).ToArray()
+                            , m_tokenSource.Token), m_tokenSource.Token);
                     }
-
-                    context.SaveChanges();
                 }
+
+                await context.SaveChangesAsync();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Log.Error("Failed to updateTick", ex);
             }
-
-            m_updateTimer.Start();
+            finally
+            {
+                m_updateTimer.Start();
+            }
         }
 
-        private void GetPostsFromGroup(DbUser _user, DateTime _start, DateTime _end, List<DbGroup> _groups)
+        private async Task GetPostsFromGroup(UserInfo _user, DateTime _start, DateTime _end, IReadOnlyCollection<GroupInfo> _groups, CancellationToken _cancellationToken)
         {
             try
             {
-                var idsList = _groups.Select(Helpers.ConvertGroupToSourceId).ToArray();
+                var idsList = _groups.Select(Helpers.ConvertGroupToSourceId);
 
                 var sourceIds = string.Join(',', idsList);
 
@@ -90,76 +108,80 @@ namespace VkGrabber
 
                 try
                 {
-                    var newsFeed = m_vkApi.GetNewsFeed(_user.Token, _start, _end, sourceIds);
+                    var newsFeed = await m_vkApi.GetNewsFeedAsync(_user.Token, _start, _end, sourceIds, _cancellationToken);
 
-                    var posts = m_feedToPostsConverter.Convert(newsFeed,
-                        _groups.ToDictionary(_key => _key.GroupId, _value => _value.GroupName));
+                    var postsGroup = m_feedToPostsConverter.Convert(newsFeed,
+                        _groups.ToDictionary(_key => _key.Id, _value => _value.Name)).GroupBy(_post => _post.GroupId);
+
+                    var posts = new Posts();
+
+                    await using var context = new GrabberDbContext();
+
+                    foreach (var postGroup in postsGroup)
+                    {
+                        var dbGroup = context.DbGroups.FirstOrDefault(_dbGroup =>
+                            _dbGroup.GroupId == postGroup.Key && _dbGroup.DbUser.Id == _user.Id);
+
+                        if (dbGroup != null)
+                        {
+                            var postsFromGroup = postGroup.ToList();
+                            postsFromGroup.Sort(m_postComparer);
+
+                            var lastUpdatedElem =
+                                postsFromGroup.FirstOrDefault(_post => _post.PostId == dbGroup.LastUpdatedPostId);
+
+                            if (lastUpdatedElem != null)
+                            {
+                                postsFromGroup = postsFromGroup.SkipWhile(_x => _x.PostId == lastUpdatedElem.PostId)
+                                    .ToList();
+
+                                Log.Debug("Find post equals to " +
+                                          $"lastUpdatedPost with id {dbGroup.LastUpdatedPostId}, cutting completed");
+                            }
+
+                            if (postsFromGroup.Count > 0)
+                            {
+                                dbGroup.LastUpdatedPostId = postsFromGroup.Last().PostId;
+                            }
+
+                            dbGroup.LastUpdateDateTime = DateTime.Now.ToUniversalTime();
+                            dbGroup.IsUpdating = false;
+                        }
+                        else
+                            Log.Error($"Can not find group with id {postGroup.Key}");
+                    }
+
+                    await context.SaveChangesAsync(_cancellationToken);
 
                     Log.Debug($"Getting {posts.Count} posts");
 
-                    using (var context = new GrabberDbContext())
-                    {
-                        foreach (var group in _groups)
-                        {
-                            var dbGroup = context.DbGroups.FirstOrDefault(_dbGroup =>
-                                _dbGroup.GroupId == group.GroupId && _dbGroup.DbUser.Id == group.DbUser.Id);
-
-                            if (dbGroup != null)
-                            {
-                                var postsFromGroup = posts.Where(_post => _post.GroupId == group.GroupId).ToList();
-
-                                postsFromGroup.Sort(m_postComparer);
-
-                                var lastUpdatedElem = postsFromGroup.FirstOrDefault(_post => _post.PostId == group.LastUpdatedPostId);
-
-                                if (lastUpdatedElem != null)
-                                {
-                                    var index = postsFromGroup.IndexOf(lastUpdatedElem);
-
-                                    postsFromGroup.Take(index + 1).ToList().ForEach(_post => posts.Remove(_post));
-
-                                    postsFromGroup = postsFromGroup.Skip(index + 1).Take(postsFromGroup.Count - index + 1).ToList();
-
-                                    Log.Debug("Finded post equals to " +
-                                        $"lastUpdatedPost wiht id {group.LastUpdatedPostId}, cutting completed");
-                                }
-
-                                if (postsFromGroup.Count > 0)
-                                {
-                                    dbGroup.LastUpdatedPostId = postsFromGroup.Last().PostId;
-                                }
-
-                                dbGroup.LastUpdateDateTime = DateTime.Now.ToUniversalTime();
-                                dbGroup.IsUpdating = false;
-                            }
-                            else
-                                Log.Error($"Can not find group with id {group.Id}");
-
-                        }
-
-                        context.SaveChanges();
-                    }
-
-                    NewDataGrabbedEventHandler?.Invoke(_user.Key, posts);
+                    if (posts.Any())
+                        NewDataGrabbedEventHandler?.Invoke(_user.Key, posts);
                 }
-                catch (Exception ex)
+                catch (OperationCanceledException)
                 {
-                    using (var context = new GrabberDbContext())
+                    throw;
+                }
+                catch (Exception)
+                {
+                    await using var context = new GrabberDbContext();
+                    foreach (var group in _groups)
                     {
-                        foreach (var group in _groups)
-                        {
-                            var dbGroup = context.DbGroups.FirstOrDefault(_dbGroup =>
-                                _dbGroup.GroupId == group.GroupId && _dbGroup.DbUser.Id == group.DbUser.Id);
+                        var dbGroup = context.DbGroups.FirstOrDefault(_dbGroup =>
+                            _dbGroup.GroupId == group.Id && _dbGroup.DbUser.Id == _user.Id);
 
-                            if (dbGroup != null)
-                                dbGroup.IsUpdating = false;
-                        }
-
-                        context.SaveChanges();
+                        if (dbGroup != null)
+                            dbGroup.IsUpdating = false;
                     }
+
+                    await context.SaveChangesAsync(_cancellationToken);
 
                     throw;
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -167,12 +189,31 @@ namespace VkGrabber
             }
         }
 
-        class PostComparer : IComparer<Post>
+        private class PostComparer : IComparer<Post>
         {
             public int Compare(Post _x, Post _y)
             {
+                if (_x is null && _y is null)
+                    return 0;
+
+                if (_x is null)
+                    return 1;
+                if (_y is null)
+                    return -1;
+                
                 return _x.PublishTime.CompareTo(_y.PublishTime);
             }
         }
+
+        public void Dispose()
+        {
+            m_updateTimer.Stop();
+            m_updateTimer.Elapsed -= UpdateTimer_Elapsed;
+            m_tokenSource.Cancel();
+            m_tokenSource.Dispose();
+        }
     }
+
+    internal record GroupInfo(string Prefix, int Id, string Name);
+    internal record UserInfo(int Id, string Key, string Token);
 }

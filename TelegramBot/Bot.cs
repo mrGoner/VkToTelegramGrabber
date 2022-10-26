@@ -6,6 +6,7 @@ using Telegram.Bot.Args;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.InputFiles;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using VkGrabber;
 using VkApi;
@@ -26,7 +27,6 @@ namespace TelegramBot
         private readonly Dictionary<long, IUserHelper> m_registeredHelpers;
         private readonly IUserHelperSelector m_helperSelector;
         private string m_botName;
-        private const string ApiVersion = "5.103";
         private readonly MessageQueue m_messageQueue;
 
         public Bot(string _token, IUserHelperSelector _helperSelector = null, IWebProxy _proxy = null)
@@ -43,9 +43,9 @@ namespace TelegramBot
             new DefaultHelper());
 
             m_userManager = new UserManager();
-            m_grabber = new Grabber(ApiVersion, TimeSpan.FromMinutes(15));
+            m_grabber = new Grabber(TimeSpan.FromMinutes(15), 20, 1000);
             
-            m_vkApi = new Vk(ApiVersion);
+            m_vkApi = new Vk();
             m_messageQueue = new MessageQueue(TimeSpan.FromSeconds(10), 4, SendMessage);
             
             m_telegramBot.OnMessage += TelegramBot_OnMessage;
@@ -85,7 +85,7 @@ namespace TelegramBot
                         return;
                     }
 
-                    var user = m_userManager.GetUser(_e.CallbackQuery.Message.Chat.Id.ToString());
+                    var user = m_userManager.GetUserAsync(_e.CallbackQuery.Message.Chat.Id.ToString(), CancellationToken.None).Result;
 
                     if (user == null)
                     {
@@ -109,7 +109,7 @@ namespace TelegramBot
                         await m_telegramBot.EditMessageReplyMarkupAsync(_e.CallbackQuery.Message.Chat.Id,
                             _e.CallbackQuery.Message.MessageId, replyMarkup: likeButton);
 
-                        m_vkApi.LikePost(-likeInfo.OwnerId, (uint)likeInfo.ItemId, user.Token);
+                        m_vkApi.LikePostAsync(-likeInfo.OwnerId, (uint)likeInfo.ItemId, user.Token, CancellationToken.None).Wait();
                     }
                     catch (InvalidParameterException)
                     {

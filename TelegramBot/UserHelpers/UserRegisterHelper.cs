@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using VkGrabber;
 using VkApi;
 
@@ -20,7 +21,7 @@ namespace TelegramBot.UserHelpers
         {
             if (_message == Command)
             {
-                if (m_userManager.GetUser(m_userId.ToString()) == null)
+                if (m_userManager.GetUserAsync(m_userId.ToString(), CancellationToken.None).Result == null)
                 {
                     m_waitingForId = true;
                     return new Response("Для регистрации необходимо выполнить следующие шаги: \n" +
@@ -63,7 +64,7 @@ namespace TelegramBot.UserHelpers
                 if (!string.IsNullOrWhiteSpace(_message) && _message.Length > 60)
                 {
                     m_waitingForToken = false;
-                    m_userManager.AddUser(m_userId.ToString(), _message);
+                    m_userManager.AddUserAsync(m_userId.ToString(), _message, CancellationToken.None).Wait();
 
                     WorkCompleteEventHandler?.Invoke(m_userId);
 
