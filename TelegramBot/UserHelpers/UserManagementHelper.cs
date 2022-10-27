@@ -6,6 +6,7 @@ using System.Text;
 using Group = VkApi.ObjectModel.Group;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using TelegramBot.Helpers;
 using VkApi.ObjectModel;
 
@@ -25,21 +26,27 @@ namespace TelegramBot.UserHelpers
         private Group m_selectedGroup;
         private bool m_waitingGroupPeriod;
         private bool m_waitingGroupRemove;
-        private IReplyMarkup m_generalMarkup;
+        private static IReplyMarkup m_generalMarkup;
+        private static IReplyMarkup m_intervalMarkup;
+
+        static UserManagementHelper()
+        {
+            m_intervalMarkup = KeyBoardBuilder.BuildMarkupKeyboard(new[] { "00:15:00", "00:30:00", "01:00:00", "01:30:00", "02:00:00" });
+            m_generalMarkup = KeyBoardBuilder.BuildMarkupKeyboard(new[] { "Добавить группу", "Удалить группу" });
+        }
 
         public void Init(long _userId, Vk _vkApi, UserManager _userManager)
         {
             m_vkApi = _vkApi ?? throw new ArgumentNullException(nameof(_vkApi));
             m_userManager = _userManager ?? throw new ArgumentNullException(nameof(_userManager));
             m_userId = _userId;
-            m_generalMarkup = KeyBoardBuilder.BuildMarkupKeyboard(new string[] { "Добавить группу", "Удалить группу" });
         }
 
-        public Response OnMessage(string _message)
+        public async ValueTask<Response> ProcessMessageAsync(string _message, CancellationToken _cancellationToken)
         {
             try
             {
-                var user = m_userManager.GetUserAsync(m_userId.ToString(), CancellationToken.None).Result;
+                var user = await m_userManager.GetUserAsync(m_userId.ToString(), _cancellationToken);
 
                 if (user == null)
                 {
@@ -55,7 +62,7 @@ namespace TelegramBot.UserHelpers
 
                     builder.AppendLine("Пришли мне ID группы для добавления из списка ниже");
 
-                    m_rawGroups = m_vkApi.GetGroupsAsync(user.Token, 100, CancellationToken.None).Result;
+                    m_rawGroups = await m_vkApi.GetGroupsAsync(user.Token, 100, _cancellationToken);
 
                     foreach (var userGroup in user.Groups)
                     {
@@ -74,8 +81,7 @@ namespace TelegramBot.UserHelpers
                     m_waitingGroupNum = true;
                     m_waitingGroupPeriod = false;
                     m_waitingGroupRemove = false;
-
-
+                    
                     return new Response(builder.ToString());
                 }
 
@@ -105,12 +111,13 @@ namespace TelegramBot.UserHelpers
 
                 if (m_waitingGroupRemove)
                 {
-                    m_waitingGroupRemove = false;
-
                     if (int.TryParse(_message, out var removeIndex) && removeIndex >= 0 && user.Groups.Length - 1 >= removeIndex)
                     {
-                        _ = m_userManager.RemoveGroupFromUser(user.Key, user.Groups[removeIndex], CancellationToken.None).Result;
+                        m_waitingGroupRemove = false;
+                        _ = m_userManager.RemoveGroupFromUser(user.Key, user.Groups[removeIndex], _cancellationToken);
 
+                        WorkCompleteEventHandler?.Invoke(m_userId);
+                        
                         return new Response("Удалено!", m_generalMarkup);
                     }
 
@@ -119,16 +126,14 @@ namespace TelegramBot.UserHelpers
 
                 if (m_waitingGroupNum)
                 {
-                    m_waitingGroupNum = false;
-
                     if (int.TryParse(_message, out var groupNum) && groupNum >= 0 && m_rawGroups.Count - 1 >= groupNum)
                     {
                         m_selectedGroup = m_rawGroups[groupNum];
 
+                        m_waitingGroupNum = false;
                         m_waitingGroupPeriod = true;
 
-                        return new Response("Почти все! Выбери период обновления",
-                            KeyBoardBuilder.BuildMarkupKeyboard(new string[] { "00:15:00", "00:30:00", "01:00:00", "01:30:00", "02:00:00" }));
+                        return new Response("Почти все! Выбери период обновления", m_intervalMarkup);
                     }
 
                     return new Response("Некорректный ID", m_generalMarkup);
@@ -136,18 +141,21 @@ namespace TelegramBot.UserHelpers
 
                 if (m_waitingGroupPeriod)
                 {
-                    m_waitingGroupPeriod = false;
 
                     if (TimeSpan.TryParse(_message, out var span) &&
                         span >= TimeSpan.FromMinutes(15))
                     {
-                        m_userManager.AddGroupToUser(user.Key,
-                            new VkGrabber.Group(m_selectedGroup.Id, span, m_selectedGroup.Name), CancellationToken.None).Wait();
+                        m_waitingGroupPeriod = false;
 
-                        return new Response("Добавлено!", m_generalMarkup);
+                        await m_userManager.AddGroupToUserAsync(user.Key,
+                            new VkGrabber.Group(m_selectedGroup.Id, span, m_selectedGroup.Name), _cancellationToken);
+
+                        WorkCompleteEventHandler?.Invoke(m_userId);
+
+                        return new Response("Добавлено!", KeyBoardBuilder.EmptyKeyboard);
                     }
 
-                    return new Response("Некорректный период обновления!", m_generalMarkup);
+                    return new Response("Некорректный период обновления!", m_intervalMarkup);
                 }
 
                 return null;

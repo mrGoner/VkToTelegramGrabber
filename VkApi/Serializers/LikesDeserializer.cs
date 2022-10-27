@@ -12,7 +12,7 @@ namespace VkApi.Serializers
 
             try
             {
-               return JsonDocument.Parse(_data).RootElement.GetProperty("likes").GetInt32();
+               return JsonDocument.Parse(_data).RootElement.GetProperty("response").GetProperty("likes").GetInt32();
             }
             catch
             {

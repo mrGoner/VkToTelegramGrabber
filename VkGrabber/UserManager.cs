@@ -53,7 +53,7 @@ namespace VkGrabber
             return user;
         }
 
-        public async Task AddGroupToUser(string _key, Group _group, CancellationToken _cancellationToken)
+        public async Task AddGroupToUserAsync(string _key, Group _group, CancellationToken _cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(_key))
                 throw new ArgumentException("Key can not be null or white space!", nameof(_key));

@@ -31,7 +31,7 @@ namespace VkApi.ObjectModel.Attachments.Photo
         public DateTime Date { get; set; }
         
         [JsonPropertyName("sizes")]
-        public PhotoSizeInfo[] Sizes { get; set; } = new PhotoSizeInfo[0];
+        public PhotoSizeInfo[] Sizes { get; set; } = Array.Empty<PhotoSizeInfo>();
 
         [JsonPropertyName("access_key")]
         public string AccessKey { get; set; }

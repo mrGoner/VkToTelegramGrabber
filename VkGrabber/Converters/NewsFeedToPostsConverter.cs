@@ -76,7 +76,7 @@ namespace VkGrabber.Converters
                             items.Add(new LinkItem(link.Url));
                             break;
                         case VideoAttachment video:
-                            if ((video.IsContentRestricted.HasValue && video.IsContentRestricted.Value) || string.IsNullOrEmpty(video.PlayerUrl))
+                            if (video.IsContentRestricted || string.IsNullOrEmpty(video.PlayerUrl))
                                 continue;
                             items.Add(new VideoItem(video.Title, video.PlayerUrl));
                             break;

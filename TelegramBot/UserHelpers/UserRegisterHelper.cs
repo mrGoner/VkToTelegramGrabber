@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 using VkGrabber;
 using VkApi;
 
@@ -17,11 +18,11 @@ namespace TelegramBot.UserHelpers
 
         public event WorkComplete WorkCompleteEventHandler;
 
-        public Response OnMessage(string _message)
+        public async ValueTask<Response> ProcessMessageAsync(string _message, CancellationToken _cancellationToken)
         {
             if (_message == Command)
             {
-                if (m_userManager.GetUserAsync(m_userId.ToString(), CancellationToken.None).Result == null)
+                if (await m_userManager.GetUserAsync(m_userId.ToString(), _cancellationToken) == null)
                 {
                     m_waitingForId = true;
                     return new Response("Для регистрации необходимо выполнить следующие шаги: \n" +
@@ -39,10 +40,9 @@ namespace TelegramBot.UserHelpers
 
             if (m_waitingForId)
             {
-                m_waitingForId = false;
-
                 if (int.TryParse(_message, out var id))
                 {
+                    m_waitingForId = false;
                     m_waitingForToken = true;
 
                     var url = m_vkApi.GetAuthUrl(id, VkApi.Requests.Permissions.Offline |
@@ -51,27 +51,26 @@ namespace TelegramBot.UserHelpers
                                                      VkApi.Requests.Permissions.Friends |
                                                      VkApi.Requests.Permissions.Video);
 
-                    return new Response($"Перейди по данной ссылке {url}, после чего пришли мне access_token из строки браузера");
+                    return new Response(
+                        $"Перейди по данной ссылке {url}, после чего пришли мне access_token из строки браузера");
                 }
 
-                return new Response("Id не распознан");
+                return new Response("Id не распознан, попробуй еще раз");
             }
 
             if (m_waitingForToken)
             {
-                m_waitingForToken = false;
-
                 if (!string.IsNullOrWhiteSpace(_message) && _message.Length > 60)
                 {
                     m_waitingForToken = false;
-                    m_userManager.AddUserAsync(m_userId.ToString(), _message, CancellationToken.None).Wait();
+                    await m_userManager.AddUserAsync(m_userId.ToString(), _message, _cancellationToken);
 
                     WorkCompleteEventHandler?.Invoke(m_userId);
 
-                    return new Response("Успешно зарегистрировано!");
+                    return new Response("Успешно зарегистрировано! Вызови команду для добавления групп!");
                 }
 
-                return new Response("Токен не распознан как действительный");
+                return new Response("Токен не распознан как действительный, попробуй еще раз");
             }
 
             WorkCompleteEventHandler?.Invoke(m_userId);
@@ -82,7 +81,7 @@ namespace TelegramBot.UserHelpers
         public void Init(long _userId, Vk _vkApi, UserManager _userManager)
         {
             m_vkApi = _vkApi ?? throw new ArgumentNullException(nameof(_vkApi));
-            m_userManager = _userManager ?? throw new ArgumentNullException(nameof(_vkApi));
+            m_userManager = _userManager ?? throw new ArgumentNullException(nameof(_userManager));
             m_userId = _userId;
         }
     }

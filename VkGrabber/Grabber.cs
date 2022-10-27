@@ -66,7 +66,7 @@ namespace VkGrabber
                 {
                     var dtNow = DateTime.Now.ToUniversalTime();
 
-                    var groupsToUpdate = await context.DbGroups.Where(_dbGroup =>
+                    var groupsToUpdate = await context.DbGroups.AsAsyncEnumerable().Where(_dbGroup =>
                         (_dbGroup.LastUpdateDateTime + _dbGroup.UpdatePeriod) < dtNow &&
                         _dbGroup.DbUser.Id == dbUser.Id && !_dbGroup.IsUpdating).ToListAsync();
 
@@ -132,7 +132,7 @@ namespace VkGrabber
 
                             if (lastUpdatedElem != null)
                             {
-                                postsFromGroup = postsFromGroup.SkipWhile(_x => _x.PostId == lastUpdatedElem.PostId)
+                                postsFromGroup = postsFromGroup.SkipWhile(_x => _x.PostId <= lastUpdatedElem.PostId)
                                     .ToList();
 
                                 Log.Debug("Find post equals to " +
@@ -142,6 +142,7 @@ namespace VkGrabber
                             if (postsFromGroup.Count > 0)
                             {
                                 dbGroup.LastUpdatedPostId = postsFromGroup.Last().PostId;
+                                posts.AddRange(postsFromGroup);
                             }
 
                             dbGroup.LastUpdateDateTime = DateTime.Now.ToUniversalTime();
@@ -156,7 +157,9 @@ namespace VkGrabber
                     Log.Debug($"Getting {posts.Count} posts");
 
                     if (posts.Any())
+                    {
                         NewDataGrabbedEventHandler?.Invoke(_user.Key, posts);
+                    }
                 }
                 catch (OperationCanceledException)
                 {

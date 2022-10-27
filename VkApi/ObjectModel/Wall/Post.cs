@@ -31,7 +31,7 @@ namespace VkApi.ObjectModel.Wall
         
         [JsonPropertyName("attachments")]
         [JsonConverter(typeof(AttachmentsJsonConverter))]
-        public IAttachmentElement[] Attachments { get; set; }
+        public IAttachmentElement[] Attachments { get; set; } = Array.Empty<IAttachmentElement>();
         
         [JsonPropertyName("post_source")]
         public PostSource PostSource { get; set; }
@@ -50,6 +50,6 @@ namespace VkApi.ObjectModel.Wall
         public bool IsFavorite { get; set; }
         
         [JsonPropertyName("copy_history")]
-        public Post[] CopyHistory { get; set; }
+        public Post[] CopyHistory { get; set; } = Array.Empty<Post>();
     }
 }

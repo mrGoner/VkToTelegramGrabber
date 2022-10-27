@@ -43,14 +43,14 @@ namespace VkApi.ObjectModel.Attachments.Video
         public string AccessKey { get; set; }
         
         [JsonPropertyName("image")]
-        public Image[] Images { get; set; }
+        public Image[] Images { get; set; } = Array.Empty<Image>();
         
         [JsonPropertyName("first_frame")]
-        public Image[] FirstFrames { get; set; }
-        
+        public Image[] FirstFrames { get; set; } = Array.Empty<Image>();
+
         [JsonPropertyName("content_restricted")]
         [JsonConverter(typeof(FieldToBoolJsonConverter))]
-        public bool? IsContentRestricted { get; set; }
+        public bool IsContentRestricted { get; set; } = false;
         
         [JsonPropertyName("content_restricted_message")]
         public string ContentRestrictedMessage { get; set; }

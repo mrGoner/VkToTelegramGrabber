@@ -1,12 +1,10 @@
-﻿namespace VkApi.ObjectModel
+﻿using System.Text.Json.Serialization;
+
+namespace VkApi.ObjectModel
 {
     public struct Views
     {
+        [JsonPropertyName("count")]
         public int Count { get; }
-
-        public Views(int _count)
-        {
-            Count = _count;
-        }
     }
 }
