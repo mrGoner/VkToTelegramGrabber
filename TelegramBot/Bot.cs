@@ -15,6 +15,8 @@ using Telegram.Bot.Types.ReplyMarkups;
 using TelegramBot.Helpers;
 using Telegram.Bot.Types.Enums;
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
+using NLog.Extensions.Logging;
 
 namespace TelegramBot
 {
@@ -28,9 +30,13 @@ namespace TelegramBot
         private readonly IUserHelperSelector m_helperSelector;
         private string m_botName;
         private readonly MessageQueue m_messageQueue;
+        private readonly ILogger m_logger;
 
         public Bot(string _token, IUserHelperSelector _helperSelector = null, HttpClient _proxy = null)
         {
+            if (_token == null) 
+                throw new ArgumentNullException(nameof(_token));
+
             m_telegramBot = new TelegramBotClient(_token, _proxy);
             m_registeredHelpers = new ConcurrentDictionary<long, IUserHelper>();
             m_helperSelector = _helperSelector ??
@@ -43,10 +49,14 @@ namespace TelegramBot
             new DefaultHelper());
 
             m_userManager = new UserManager();
-            m_grabber = new Grabber(TimeSpan.FromMinutes(1), 20, 1000);
+
+            var loggerFactory = new NLogLoggerFactory();
+
+            m_grabber = new Grabber(TimeSpan.FromMinutes(1), 20, 1000, loggerFactory);
             
             m_vkApi = new Vk();
             m_messageQueue = new MessageQueue(TimeSpan.FromSeconds(10), 4, SendMessage);
+            m_logger = loggerFactory.CreateLogger(typeof(Bot));
             
             m_grabber.NewDataGrabbedEventHandler += Grabber_NewDataGrabbedEventHandler;
         }
@@ -55,16 +65,15 @@ namespace TelegramBot
         {
             m_grabber.Start();
             m_botName = (await m_telegramBot.GetMeAsync()).Username;
-
-            Console.WriteLine($"Bot name: {m_botName}");
             
             m_telegramBot.StartReceiving(UpdateHandler, PollingErrorHandler);
+            
+            m_logger.LogDebug("Bot name: {BotName} started", m_botName);
         }
 
         private Task PollingErrorHandler(ITelegramBotClient _client, Exception _exception, CancellationToken _cancellationToken)
         {
-            Console.Write(_exception);
-
+            m_logger.LogError(_exception, "Pooling error occured");
             return Task.CompletedTask;
         }
 
@@ -203,12 +212,12 @@ namespace TelegramBot
                             _callbackQuery.Message.MessageId, replyMarkup: likeButton,
                             cancellationToken: _cancellationToken);
 
-                        Console.WriteLine(ex);
+                        m_logger.LogError(ex, "Failed to answer likes");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex);
+                    m_logger.LogError(ex, "Error while HandleCallbackQueryAsync");
                 }
             }
         }

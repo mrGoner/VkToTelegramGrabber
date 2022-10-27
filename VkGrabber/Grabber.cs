@@ -6,10 +6,10 @@ using VkApi;
 using System.Timers;
 using VkGrabber.Converters;
 using VkGrabber.Model;
-using static VkGrabber.MyLogger;
 using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace VkGrabber
 {
@@ -23,8 +23,9 @@ namespace VkGrabber
         private readonly NewsFeedToPostsConverter m_feedToPostsConverter;
         private readonly PostComparer m_postComparer = new PostComparer();
         private readonly CancellationTokenSource m_tokenSource;
+        private readonly ILogger m_logger;
 
-        public Grabber(TimeSpan _updateSpan, int _maxPerformed, int _bufferCapacity)
+        public Grabber(TimeSpan _updateSpan, int _maxPerformed, int _bufferCapacity, ILoggerFactory _loggerFactory)
         {
             if (_maxPerformed <= 0)
                 throw new ArgumentOutOfRangeException($"{nameof(_maxPerformed)} must be greater than zero");
@@ -41,8 +42,9 @@ namespace VkGrabber
             m_updateTimer.Elapsed += UpdateTimer_Elapsed;
             m_feedToPostsConverter = new NewsFeedToPostsConverter();
             m_tokenSource = new CancellationTokenSource();
+            m_logger = _loggerFactory.CreateLogger(typeof(Grabber));
             
-            Log.Info($"Grabber init with update interval: {_updateSpan}");
+            m_logger.LogInformation("Grabber init with update interval: {UpdateSpan}", _updateSpan);
         }
 
         public void Start()
@@ -87,7 +89,7 @@ namespace VkGrabber
             }
             catch (Exception ex)
             {
-                Log.Error("Failed to updateTick", ex);
+                m_logger.LogError(ex, "Failed to update by interval");
             }
             finally
             {
@@ -103,8 +105,9 @@ namespace VkGrabber
 
                 var sourceIds = string.Join(',', idsList);
 
-                Log.Debug($"GetPostFromGroup with params User Id: {_user.Id} " +
-                    $"User key: {_user.Key} from {_start} to {_end} with groups {sourceIds}");
+                m_logger.LogInformation(
+                    "GetPostFromGroup with params User Id: {UserId} User key: {UserKey} from {Start} to {End} with groups {SourceIds}",
+                    _user.Id, _user.Key, _start, _end, sourceIds);
 
                 try
                 {
@@ -135,8 +138,9 @@ namespace VkGrabber
                                 postsFromGroup = postsFromGroup.SkipWhile(_x => _x.PostId <= lastUpdatedElem.PostId)
                                     .ToList();
 
-                                Log.Debug("Find post equals to " +
-                                          $"lastUpdatedPost with id {dbGroup.LastUpdatedPostId}, cutting completed");
+                                m_logger.LogDebug(
+                                    "Find post equals to lastUpdatedPost with id {DbGroupLastUpdatedPostId}, cutting completed",
+                                    dbGroup.LastUpdatedPostId);
                             }
 
                             if (postsFromGroup.Count > 0)
@@ -149,12 +153,12 @@ namespace VkGrabber
                             dbGroup.IsUpdating = false;
                         }
                         else
-                            Log.Error($"Can not find group with id {postGroup.Key}");
+                            m_logger.LogError("Can not find group with id {PostGroupKey}", postGroup.Key);
                     }
 
                     await context.SaveChangesAsync(_cancellationToken);
 
-                    Log.Debug($"Getting {posts.Count} posts");
+                    m_logger.LogDebug("Getting {PostsCount} posts", posts.Count);
 
                     if (posts.Any())
                     {
@@ -188,7 +192,7 @@ namespace VkGrabber
             }
             catch (Exception ex)
             {
-                Log.Error("Error, while get posts from group", ex);
+                m_logger.LogError(ex, "Error, while get posts from group");
             }
         }
 

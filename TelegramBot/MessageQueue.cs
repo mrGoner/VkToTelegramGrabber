@@ -7,6 +7,8 @@ using VkGrabber.Model;
 
 namespace TelegramBot
 {
+    
+    //todo rewrite
     internal class MessageQueue
     {
         private readonly Dictionary<long, QueuedMessageInfo> m_messages;
@@ -103,13 +105,9 @@ namespace TelegramBot
             lock (m_syncObject)
             {
                 if(m_messages.TryGetValue(_message.UserId, out var messagesInfo))
-                {
                     messagesInfo.Posts.Enqueue(_message.PostToSend);
-                }
                 else
-                {
                     m_messages.Add(_message.UserId, new QueuedMessageInfo(_message.PostToSend));
-                }
             }
 
             m_autoResetEvent.Set();
