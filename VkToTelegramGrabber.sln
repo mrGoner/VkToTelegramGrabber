@@ -1,8 +1,6 @@
 
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VkTools", "VkTools\VkTools.csproj", "{4BF3FC87-0F30-4FEF-926B-17F08627D843}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestConsole", "TestConsole\TestConsole.csproj", "{61FEA1E3-BC4B-4682-A2F1-961E9E0E8218}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VkApi", "VkApi\VkApi.csproj", "{738F207B-2041-4E1A-9596-2B726B63B63E}"
@@ -11,16 +9,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VkGrabber", "VkGrabber\VkGr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TelegramBot", "TelegramBot\TelegramBot.csproj", "{E539BC56-21BB-4914-8535-065CC6ECF262}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VkTools.UnitTests", "VkTools.UnitTests\VkTools.UnitTests.csproj", "{BFA33286-2E42-4620-9EAB-035E590EB5C3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{4BF3FC87-0F30-4FEF-926B-17F08627D843}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4BF3FC87-0F30-4FEF-926B-17F08627D843}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4BF3FC87-0F30-4FEF-926B-17F08627D843}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4BF3FC87-0F30-4FEF-926B-17F08627D843}.Release|Any CPU.Build.0 = Release|Any CPU
 		{61FEA1E3-BC4B-4682-A2F1-961E9E0E8218}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{61FEA1E3-BC4B-4682-A2F1-961E9E0E8218}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{61FEA1E3-BC4B-4682-A2F1-961E9E0E8218}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -37,5 +33,9 @@ Global
 		{E539BC56-21BB-4914-8535-065CC6ECF262}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E539BC56-21BB-4914-8535-065CC6ECF262}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E539BC56-21BB-4914-8535-065CC6ECF262}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BFA33286-2E42-4620-9EAB-035E590EB5C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BFA33286-2E42-4620-9EAB-035E590EB5C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BFA33286-2E42-4620-9EAB-035E590EB5C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BFA33286-2E42-4620-9EAB-035E590EB5C3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

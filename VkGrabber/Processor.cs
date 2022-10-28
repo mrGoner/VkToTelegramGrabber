@@ -1,83 +1,78 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Channels;
 
 namespace VkGrabber
 {
-    internal class Processor
+    internal class Processor : IDisposable
     {
-        private readonly Queue<ProcessorJob> m_queue;
-        private readonly int m_maxPerformed;
-        private readonly object m_syncObject = new object();
-        private readonly List<Task> m_performedTasks;
-        private readonly AutoResetEvent m_autoResetEvent;
+        private readonly SemaphoreSlim m_semaphore;
+        private readonly Channel<ProcessorJob> m_processorJobs;
+        private bool m_isDisposed;
 
-        public Processor(int _maxPerformed)
+        public Processor(int _maxPerformed, int _processorCapacity)
         {
-            m_queue = new Queue<ProcessorJob>();
-            m_performedTasks = new List<Task>(_maxPerformed);
-            m_maxPerformed = _maxPerformed;
-            m_autoResetEvent = new AutoResetEvent(false);
+            m_processorJobs = Channel.CreateBounded<ProcessorJob>(new BoundedChannelOptions(_processorCapacity){
+                AllowSynchronousContinuations = true,
+                FullMode = BoundedChannelFullMode.Wait,
+                SingleWriter = false,
+                SingleReader = true
+            });
+            
+            m_semaphore = new SemaphoreSlim(_maxPerformed, _maxPerformed);
 
-            Task.Factory.StartNew(PerformTask, TaskCreationOptions.LongRunning);
+            _ = PerformTask();
         }
 
-        private void PerformTask()
+        private async Task PerformTask()
         {
-            while (true)
+            await foreach (var job in m_processorJobs.Reader.ReadAllAsync())
             {
-                lock (m_syncObject)
-                {
-                    if(m_performedTasks.Count < m_maxPerformed &&
-                        m_queue.TryDequeue(out var job))
-                    {
-                        var task = new Task(job.PlannedAction);
+                if(m_isDisposed)
+                    return;
 
-                        task.ContinueWith(_x =>
-                        {
-                            RemoveFromPerformed(task);
-                        });
+                await m_semaphore.WaitAsync();
 
-                        m_performedTasks.Add(task);
-
-                        task.Start();
-
-                        continue;
-                    }
-                }
-
-                m_autoResetEvent.WaitOne();
+               _ = job.PlannedAction().ContinueWith(_ =>
+               {
+                    if(m_isDisposed)
+                        return;
+                        
+                    m_semaphore.Release();
+               });
             }
         }
 
-        private void RemoveFromPerformed(Task _task)
-        {
-            lock (m_syncObject)
-            {
-                m_performedTasks.Remove(_task);
-            }
-        }
-
-        public void Add(Action _action)
+        public async Task AddAsync(Func<Task> _action, CancellationToken _cancellationToken)
         {
             if (_action == null)
                 throw new ArgumentNullException(nameof(_action));
 
-            lock (m_syncObject)
-            {
-                m_queue.Enqueue(new ProcessorJob(_action));
-            }
+            if (m_isDisposed)
+                throw new ObjectDisposedException(nameof(Processor));
 
-            m_autoResetEvent.Set();
+            await m_processorJobs.Writer.WriteAsync(new ProcessorJob(_action), _cancellationToken);
+        }
+
+        public void Dispose()
+        {
+            if (m_isDisposed)
+                return;
+
+            m_isDisposed = true;
+            
+            m_processorJobs.Writer.Complete();
+            m_semaphore.Dispose();
         }
     }
 
     internal class ProcessorJob
     {
-        public Action PlannedAction { get; }
+        public Guid Id => Guid.NewGuid();
+        public Func<Task> PlannedAction { get; }
 
-        public ProcessorJob(Action _action)
+        public ProcessorJob(Func<Task> _action)
         {
             PlannedAction = _action;
         }

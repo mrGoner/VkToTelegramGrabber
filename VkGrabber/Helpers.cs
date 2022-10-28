@@ -4,12 +4,12 @@ namespace VkGrabber
 {
     internal static class Helpers
     {
-        public static string ConvertGroupToSourceId(DbGroup _group)
+        public static string ConvertGroupToSourceId(GroupInfo _group)
         {
-            if (!string.IsNullOrWhiteSpace(_group.GroupPrefix))
-                return $"{_group.GroupPrefix}{_group.GroupId}";
+            if (!string.IsNullOrWhiteSpace(_group.Prefix))
+                return $"{_group.Prefix}{_group.Id}";
 
-            return _group.GroupId.ToString();
+            return _group.Id.ToString();
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿using VkGrabber;
+﻿using System.Threading;
+using System.Threading.Tasks;
+using VkGrabber;
 using VkApi;
 
 namespace TelegramBot.UserHelpers
@@ -9,7 +11,7 @@ namespace TelegramBot.UserHelpers
     {
         string Command { get; }
         event WorkComplete WorkCompleteEventHandler;
-        Response OnMessage(string _message);
+        ValueTask<Response> ProcessMessageAsync(string _message, CancellationToken _cancellationToken);
         void Init(long _userId, Vk _vkApi, UserManager _userManager);
     }
 }
