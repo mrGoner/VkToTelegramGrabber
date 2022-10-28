@@ -62,8 +62,8 @@ namespace VkGrabber
 
             m_isDisposed = true;
             
-            m_semaphore.Dispose();
             m_processorJobs.Writer.Complete();
+            m_semaphore.Dispose();
         }
     }
 

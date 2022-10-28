@@ -44,14 +44,10 @@ namespace VkApi
 
                 var videosToEnrich = new List<VideoAttachment>(10);
 
-                foreach(var newsFeedElement in newsFeed)
+                foreach (var newsFeedElement in newsFeed)
                 {
-                    if(newsFeedElement is Post post)
-                    {
-                        var videoAttachments = post.Attachments.OfType<VideoAttachment>().Where(video => string.IsNullOrWhiteSpace(video.PlayerUrl) && video.IsContentRestricted == false);
-
-                        videosToEnrich.AddRange(videoAttachments);
-                    }
+                    if (newsFeedElement is Post post)
+                        videosToEnrich.AddRange(ExtractVideoAttachmentsFromPost(post));
                 }
 
                 await EnrichVideoItems(_userToken, videosToEnrich, _cancellationToken);
@@ -124,6 +120,20 @@ namespace VkApi
 
                 videoAttachment.PlayerUrl = videoInfo?.PlayerUrl;
             }
+        }
+
+        private IReadOnlyCollection<VideoAttachment> ExtractVideoAttachmentsFromPost(Post post)
+        {
+            var videosToEnrich = new List<VideoAttachment>();
+
+            var videoAttachments = post.Attachments.OfType<VideoAttachment>().Where(video => string.IsNullOrWhiteSpace(video.PlayerUrl) && video.IsContentRestricted == false);
+
+            videosToEnrich.AddRange(videoAttachments);
+
+            foreach (var copyHistory in post.CopyHistory)
+                videosToEnrich.AddRange(ExtractVideoAttachmentsFromPost(copyHistory));
+
+            return videosToEnrich;
         }
     }
 }

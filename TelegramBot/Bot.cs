@@ -61,12 +61,12 @@ namespace TelegramBot
             m_grabber.NewDataGrabbedEventHandler += Grabber_NewDataGrabbedEventHandler;
         }
 
-        public async Task Start()
+        public async Task Start(CancellationToken _cancellationToken)
         {
-            m_grabber.Start();
-            m_botName = (await m_telegramBot.GetMeAsync()).Username;
+            await m_grabber.Start(_cancellationToken);
+            m_botName = (await m_telegramBot.GetMeAsync(_cancellationToken)).Username;
             
-            m_telegramBot.StartReceiving(UpdateHandler, PollingErrorHandler);
+            m_telegramBot.StartReceiving(UpdateHandler, PollingErrorHandler, cancellationToken: _cancellationToken);
             
             m_logger.LogDebug("Bot name: {BotName} started", m_botName);
         }

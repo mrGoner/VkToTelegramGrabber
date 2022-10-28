@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using VkGrabber.DataLayer;
 using VkApi;
-using System.Timers;
 using VkGrabber.Converters;
 using VkGrabber.Model;
 using System.Threading.Tasks;
@@ -19,81 +18,94 @@ namespace VkGrabber
         public delegate void NewDataGrabbed(string _userKey, Posts _posts);
         public event NewDataGrabbed NewDataGrabbedEventHandler;
         private readonly Vk m_vkApi;
-        private readonly System.Timers.Timer m_updateTimer;
         private readonly NewsFeedToPostsConverter m_feedToPostsConverter;
         private readonly PostComparer m_postComparer = new PostComparer();
-        private readonly CancellationTokenSource m_tokenSource;
+        private CancellationTokenSource m_tokenSource;
         private readonly ILogger m_logger;
+        private bool m_isDisposed;
+        private bool m_isStarted;
+        private TimeSpan m_updateSpan;
 
         public Grabber(TimeSpan _updateSpan, int _maxPerformed, int _bufferCapacity, ILoggerFactory _loggerFactory)
         {
             if (_maxPerformed <= 0)
                 throw new ArgumentOutOfRangeException($"{nameof(_maxPerformed)} must be greater than zero");
-            
-            if(_bufferCapacity <= 0)
+
+            if (_bufferCapacity <= 0)
                 throw new ArgumentOutOfRangeException($"{nameof(_bufferCapacity)} must be greater than zero");
 
             if (_updateSpan == default)
                 throw new ArgumentException($"{nameof(_updateSpan)} must be set");
-            
+
             m_processor = new Processor(_maxPerformed, _bufferCapacity);
             m_vkApi = new Vk();
-            m_updateTimer = new System.Timers.Timer(_updateSpan.TotalMilliseconds);
-            m_updateTimer.Elapsed += UpdateTimer_Elapsed;
+            m_updateSpan = _updateSpan;
             m_feedToPostsConverter = new NewsFeedToPostsConverter();
-            m_tokenSource = new CancellationTokenSource();
             m_logger = _loggerFactory.CreateLogger(typeof(Grabber));
-            
+
             m_logger.LogInformation("Grabber init with update interval: {UpdateSpan}", _updateSpan);
         }
 
-        public void Start()
+        public async ValueTask Start(CancellationToken _cancellationToken)
         {
-            m_updateTimer.Start();
+            if (m_isDisposed)
+                throw new ObjectDisposedException(nameof(Grabber));
+
+            if (m_isStarted)
+                return;
+
+            m_tokenSource = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken);
+
+            await ResetUpdatingStateForGroups(m_tokenSource.Token);
+
+            _ = UpdateProcessor(_cancellationToken);
         }
 
         public void Stop()
         {
-            m_updateTimer.Stop();
+            if (!m_isStarted)
+                return;
+
+            m_isStarted = false;
+            m_tokenSource.Cancel(false);
         }
 
-        private async void UpdateTimer_Elapsed(object _sender, ElapsedEventArgs _e)
+        private async Task UpdateProcessor(CancellationToken _cancellationToken)
         {
-            m_updateTimer.Stop();
-
-            try
+            while (!_cancellationToken.IsCancellationRequested)
             {
-                await using var context = new GrabberDbContext();
-                foreach (var dbUser in await context.DbUsers.ToListAsync())
+                try
                 {
-                    var dtNow = DateTime.Now.ToUniversalTime();
-
-                    var groupsToUpdate = await context.DbGroups.AsAsyncEnumerable().Where(_dbGroup =>
-                        (_dbGroup.LastUpdateDateTime + _dbGroup.UpdatePeriod) < dtNow &&
-                        _dbGroup.DbUser.Id == dbUser.Id && !_dbGroup.IsUpdating).ToListAsync();
-
-                    if (groupsToUpdate.Any())
+                    await using var context = new GrabberDbContext();
+                    foreach (var dbUser in await context.DbUsers.ToListAsync(_cancellationToken))
                     {
-                        var startDateTime = groupsToUpdate.Select(_group => _group.LastUpdateDateTime).Min();
+                        var dtNow = DateTime.Now.ToUniversalTime();
 
-                        groupsToUpdate.ForEach(_group => _group.IsUpdating = true);
+                        var groupsToUpdate = await context.DbGroups.AsAsyncEnumerable().Where(_dbGroup =>
+                            (_dbGroup.LastUpdateDateTime + _dbGroup.UpdatePeriod) < dtNow &&
+                            _dbGroup.DbUser.Id == dbUser.Id && !_dbGroup.IsUpdating).ToListAsync(_cancellationToken);
 
-                        await m_processor.AddAsync(async () => await GetPostsFromGroup(
-                            new UserInfo(dbUser.Id, dbUser.Key, dbUser.Token), startDateTime, dtNow,
-                            groupsToUpdate.Select(_x => new GroupInfo(_x.GroupPrefix, _x.GroupId, _x.GroupName)).ToArray()
-                            , m_tokenSource.Token), m_tokenSource.Token);
+                        if (groupsToUpdate.Any())
+                        {
+                            var startDateTime = groupsToUpdate.Select(_group => _group.LastUpdateDateTime).Min();
+
+                            groupsToUpdate.ForEach(_group => _group.IsUpdating = true);
+
+                            await context.SaveChangesAsync(_cancellationToken);
+
+                            await m_processor.AddAsync(async () => await GetPostsFromGroup(
+                                new UserInfo(dbUser.Id, dbUser.Key, dbUser.Token), startDateTime, dtNow,
+                                groupsToUpdate.Select(_x => new GroupInfo(_x.GroupPrefix, _x.GroupId, _x.GroupName)).ToArray()
+                                , _cancellationToken), _cancellationToken);
+                        }
                     }
                 }
+                catch (Exception ex)
+                {
+                    m_logger.LogError(ex, "Failed to update by interval");
+                }
 
-                await context.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                m_logger.LogError(ex, "Failed to update by interval");
-            }
-            finally
-            {
-                m_updateTimer.Start();
+                await Task.Delay(m_updateSpan, _cancellationToken);
             }
         }
 
@@ -122,8 +134,10 @@ namespace VkGrabber
 
                     foreach (var postGroup in postsGroup)
                     {
-                        var dbGroup = context.DbGroups.FirstOrDefault(_dbGroup =>
-                            _dbGroup.GroupId == postGroup.Key && _dbGroup.DbUser.Id == _user.Id);
+                        _cancellationToken.ThrowIfCancellationRequested();
+
+                        var dbGroup = await context.DbGroups.FirstOrDefaultAsync(_dbGroup =>
+                            _dbGroup.GroupId == postGroup.Key && _dbGroup.DbUser.Id == _user.Id, _cancellationToken);
 
                         if (dbGroup != null)
                         {
@@ -148,15 +162,14 @@ namespace VkGrabber
                                 dbGroup.LastUpdatedPostId = postsFromGroup.Last().PostId;
                                 posts.AddRange(postsFromGroup);
                             }
-
-                            dbGroup.LastUpdateDateTime = DateTime.Now.ToUniversalTime();
-                            dbGroup.IsUpdating = false;
                         }
                         else
                             m_logger.LogError("Can not find group with id {PostGroupKey}", postGroup.Key);
                     }
 
                     await context.SaveChangesAsync(_cancellationToken);
+
+                    await CompleteGroupsUpdatingForUser(_user, _groups, _end, _cancellationToken);
 
                     m_logger.LogDebug("Getting {PostsCount} posts", posts.Count);
 
@@ -171,18 +184,7 @@ namespace VkGrabber
                 }
                 catch (Exception)
                 {
-                    await using var context = new GrabberDbContext();
-                    foreach (var group in _groups)
-                    {
-                        var dbGroup = context.DbGroups.FirstOrDefault(_dbGroup =>
-                            _dbGroup.GroupId == group.Id && _dbGroup.DbUser.Id == _user.Id);
-
-                        if (dbGroup != null)
-                            dbGroup.IsUpdating = false;
-                    }
-
-                    await context.SaveChangesAsync(_cancellationToken);
-
+                    await CompleteGroupsUpdatingForUser(_user, _groups, _end, _cancellationToken);
                     throw;
                 }
             }
@@ -196,6 +198,36 @@ namespace VkGrabber
             }
         }
 
+        private async Task CompleteGroupsUpdatingForUser(UserInfo _userInfo, IEnumerable<GroupInfo> _groups, DateTime _updateTime, CancellationToken _cancellationToken)
+        {
+            await using var context = new GrabberDbContext();
+            foreach (var group in _groups)
+            {
+                var dbGroup = context.DbGroups.FirstOrDefault(_dbGroup =>
+                    _dbGroup.GroupId == group.Id && _dbGroup.DbUser.Id == _userInfo.Id);
+
+                if (dbGroup == null)
+                    continue;
+
+                dbGroup.LastUpdateDateTime = _updateTime;
+                dbGroup.IsUpdating = false;
+            }
+
+            await context.SaveChangesAsync(_cancellationToken);
+        }
+
+        private async Task ResetUpdatingStateForGroups(CancellationToken _cancellationToken)
+        {
+            await using var context = new GrabberDbContext();
+
+            await foreach (var group in context.DbGroups.Where(group => group.IsUpdating).AsAsyncEnumerable().WithCancellation(_cancellationToken))
+            {
+                group.IsUpdating = false;
+            }
+
+            await context.SaveChangesAsync(_cancellationToken);
+        }
+
         private class PostComparer : IComparer<Post>
         {
             public int Compare(Post _x, Post _y)
@@ -207,16 +239,20 @@ namespace VkGrabber
                     return 1;
                 if (_y is null)
                     return -1;
-                
+
                 return _x.PublishTime.CompareTo(_y.PublishTime);
             }
         }
 
         public void Dispose()
         {
-            m_updateTimer.Stop();
-            m_updateTimer.Elapsed -= UpdateTimer_Elapsed;
-            m_tokenSource.Cancel();
+            if(m_isDisposed)
+                return;
+
+            m_isDisposed = true;
+
+            m_processor.Dispose();
+            m_tokenSource.Cancel(false);
             m_tokenSource.Dispose();
         }
     }
