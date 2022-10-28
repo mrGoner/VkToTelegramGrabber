@@ -255,7 +255,7 @@ namespace TelegramBot
                     {
                         case ImageItem imageItem:
                             await m_telegramBot.SendPhotoAsync(_userId,
-                                new InputOnlineFile(imageItem.UrlMedium ?? imageItem.UrlLarge), text, replyMarkup: likeButton);
+                                new InputOnlineFile(imageItem.UrlLarge ?? imageItem.UrlMedium ?? imageItem.UrlSmall), text, replyMarkup: likeButton);
                             break;
                         case VideoItem videoItem:
                             if (!string.IsNullOrEmpty(videoItem.Url))
