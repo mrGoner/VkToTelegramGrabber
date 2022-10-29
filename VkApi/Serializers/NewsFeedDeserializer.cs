@@ -21,7 +21,7 @@ namespace VkApi.Serializers
             }
             catch (Exception ex)
             {
-                throw new DeserializerException("Failed to deserialize newsfeed", ex);
+                throw new DeserializerException("Failed to deserialize newsfeed", _data, ex);
             }
         }
     }

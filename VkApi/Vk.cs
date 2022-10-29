@@ -34,7 +34,7 @@ namespace VkApi
             try
             {
                 var request = RequestBuilder.BuildNewsFeedRequest(_userToken, CurrentVkVersion,
-                                 _start, _end, _sourceIds);
+                    _start, _end, _sourceIds);
 
                 using var requestExecutor = new RestClient(BaseUrl);
 
@@ -53,6 +53,10 @@ namespace VkApi
                 await EnrichVideoItems(_userToken, videosToEnrich, _cancellationToken);
 
                 return newsFeed;
+            }
+            catch (DeserializerException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -74,6 +78,10 @@ namespace VkApi
 
                 return groups;
             }
+            catch (DeserializerException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 throw new VkException("Failed to get groups", ex);
@@ -93,6 +101,10 @@ namespace VkApi
                 var likesCount = m_likesDeserializer.ParseLikesCount(responseData.Content);
 
                 return likesCount;
+            }
+            catch (DeserializerException)
+            {
+                throw;
             }
             catch (Exception ex)
             {

@@ -16,7 +16,7 @@ namespace VkApi.Serializers
             }
             catch (Exception ex)
             {
-                throw new DeserializerException($"Failed to deserialize groups \n {_data}", ex);
+                throw new DeserializerException("Failed to deserialize groups", _data, ex);
             }
         }
     }

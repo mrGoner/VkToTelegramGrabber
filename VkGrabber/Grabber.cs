@@ -24,7 +24,7 @@ namespace VkGrabber
         private readonly ILogger m_logger;
         private bool m_isDisposed;
         private bool m_isStarted;
-        private TimeSpan m_updateSpan;
+        private readonly TimeSpan m_updateSpan;
         private readonly DbContextFactory m_contextFactory;
 
         public Grabber(TimeSpan _updateSpan, int _maxPerformed, int _bufferCapacity, string _pathToDb, ILoggerFactory _loggerFactory)
@@ -222,7 +222,7 @@ namespace VkGrabber
         {
             await using var context = m_contextFactory.CreateContext();
 
-            await foreach (var group in context.DbGroups.Where(group => group.IsUpdating).AsAsyncEnumerable().WithCancellation(_cancellationToken))
+            await foreach (var group in context.DbGroups.Where(_group => _group.IsUpdating).AsAsyncEnumerable().WithCancellation(_cancellationToken))
             {
                 group.IsUpdating = false;
             }

@@ -18,7 +18,7 @@ namespace VkApi.Serializers
             }
             catch (Exception ex)
             {
-                throw new DeserializerException("Failed to deserialize newsfeed", ex);
+                throw new DeserializerException("Failed to deserialize video info", _data, ex);
             }
         }
     }

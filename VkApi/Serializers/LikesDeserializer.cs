@@ -14,9 +14,9 @@ namespace VkApi.Serializers
             {
                return JsonDocument.Parse(_data).RootElement.GetProperty("response").GetProperty("likes").GetInt32();
             }
-            catch
+            catch(Exception ex)
             {
-                throw new DeserializerException($"Failed to parse likes count: {_data}");
+                throw new DeserializerException("Failed to parse likes count", _data, ex);
             }
         } 
     }

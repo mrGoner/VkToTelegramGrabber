@@ -16,7 +16,9 @@ using TelegramBot.Helpers;
 using Telegram.Bot.Types.Enums;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
+using NLog;
 using NLog.Extensions.Logging;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace TelegramBot
 {
@@ -32,7 +34,7 @@ namespace TelegramBot
         private readonly MessageQueue m_messageQueue;
         private readonly ILogger m_logger;
 
-        public Bot(string _token, string _pathToDb, IUserHelperSelector _helperSelector = null, HttpClient _proxy = null)
+        public Bot(string _token, string _pathToDb, string _logsDir, IUserHelperSelector _helperSelector = null, HttpClient _proxy = null)
         {
             if (_token == null) 
                 throw new ArgumentNullException(nameof(_token));
@@ -49,6 +51,8 @@ namespace TelegramBot
             new DefaultHelper());
 
             m_userManager = new UserManager(_pathToDb);
+
+            LogManager.Configuration.Variables["logs_dir"] = _logsDir;
 
             var loggerFactory = new NLogLoggerFactory();
 
