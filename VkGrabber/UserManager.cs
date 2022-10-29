@@ -9,10 +9,16 @@ namespace VkGrabber
 {
     public class UserManager
     {
+        private readonly DbContextFactory m_contextFactory;
+        public UserManager(string _pathToDb)
+        {
+            m_contextFactory = new DbContextFactory(_pathToDb);
+        }
+
         //подумать про проверку токена
         public async Task AddUserAsync(string _key, string _token, CancellationToken _cancellationToken)
         {
-            await using var context = new GrabberDbContext();
+            await using var context = m_contextFactory.CreateContext();
             var existUser =
                 await context.DbUsers.FirstOrDefaultAsync(_dbUser => _dbUser.Key == _key, _cancellationToken);
 
@@ -37,7 +43,7 @@ namespace VkGrabber
             if (string.IsNullOrWhiteSpace(_key))
                 throw new ArgumentException("Key can not be null or white space!", nameof(_key));
 
-            await using var context = new GrabberDbContext();
+            await using var context = m_contextFactory.CreateContext();
             var dbUser = await context.DbUsers.FirstOrDefaultAsync(_user => _user.Key == _key, _cancellationToken);
 
             if (dbUser == null)
@@ -61,7 +67,7 @@ namespace VkGrabber
             if (_group == null)
                 throw new ArgumentNullException(nameof(_group));
 
-            await using var context = new GrabberDbContext();
+            await using var context = m_contextFactory.CreateContext();
             var dbUser = await context.DbUsers.FirstOrDefaultAsync(_dbUser => _dbUser.Key == _key, _cancellationToken);
 
             if (dbUser == null)
@@ -95,7 +101,7 @@ namespace VkGrabber
             if (string.IsNullOrWhiteSpace(_key))
                 throw new ArgumentException("Key can not be null or white space!", nameof(_key));
 
-            await using var context = new GrabberDbContext();
+            await using var context = m_contextFactory.CreateContext();
             var dbUser = await context.DbUsers.FirstOrDefaultAsync(_dbUser => _dbUser.Key == _key, _cancellationToken);
 
             if (dbUser == null)
@@ -114,7 +120,7 @@ namespace VkGrabber
 
         public User[] GetUsers()
         {
-            using var context = new GrabberDbContext();
+            using var context = m_contextFactory.CreateContext();
             var users = context.DbUsers.Include(x => x.DbGroups).Select(_dbUser => new User(_dbUser.Token, _dbUser.Key,
                 _dbUser.DbGroups.Select(_dbGroup =>
                     new Group(_dbGroup.GroupId, _dbGroup.UpdatePeriod, _dbGroup.GroupName)).ToArray()));
@@ -130,7 +136,7 @@ namespace VkGrabber
             if (_group == null)
                 throw new ArgumentNullException(nameof(_group));
 
-            await using var context = new GrabberDbContext();
+            await using var context = m_contextFactory.CreateContext();
             var dbUser = await context.DbUsers.FirstOrDefaultAsync(_dbUser => _dbUser.Key == _key, _cancellationToken);
 
             if (dbUser == null)

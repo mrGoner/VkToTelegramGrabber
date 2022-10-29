@@ -1,8 +1,6 @@
 
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestConsole", "TestConsole\TestConsole.csproj", "{61FEA1E3-BC4B-4682-A2F1-961E9E0E8218}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VkApi", "VkApi\VkApi.csproj", "{738F207B-2041-4E1A-9596-2B726B63B63E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VkGrabber", "VkGrabber\VkGrabber.csproj", "{6AA48328-BCD4-4E11-928B-ECCA1C2BAD1D}"
@@ -11,16 +9,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TelegramBot", "TelegramBot\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VkTools.UnitTests", "VkTools.UnitTests\VkTools.UnitTests.csproj", "{BFA33286-2E42-4620-9EAB-035E590EB5C3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleBot", "ConsoleBot\ConsoleBot.csproj", "{B1215E25-15EB-4B96-87DE-C635E5CB866F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{61FEA1E3-BC4B-4682-A2F1-961E9E0E8218}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{61FEA1E3-BC4B-4682-A2F1-961E9E0E8218}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{61FEA1E3-BC4B-4682-A2F1-961E9E0E8218}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{61FEA1E3-BC4B-4682-A2F1-961E9E0E8218}.Release|Any CPU.Build.0 = Release|Any CPU
 		{738F207B-2041-4E1A-9596-2B726B63B63E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{738F207B-2041-4E1A-9596-2B726B63B63E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{738F207B-2041-4E1A-9596-2B726B63B63E}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -37,5 +33,9 @@ Global
 		{BFA33286-2E42-4620-9EAB-035E590EB5C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BFA33286-2E42-4620-9EAB-035E590EB5C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BFA33286-2E42-4620-9EAB-035E590EB5C3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1215E25-15EB-4B96-87DE-C635E5CB866F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1215E25-15EB-4B96-87DE-C635E5CB866F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1215E25-15EB-4B96-87DE-C635E5CB866F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1215E25-15EB-4B96-87DE-C635E5CB866F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

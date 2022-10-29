@@ -25,8 +25,9 @@ namespace VkGrabber
         private bool m_isDisposed;
         private bool m_isStarted;
         private TimeSpan m_updateSpan;
+        private readonly DbContextFactory m_contextFactory;
 
-        public Grabber(TimeSpan _updateSpan, int _maxPerformed, int _bufferCapacity, ILoggerFactory _loggerFactory)
+        public Grabber(TimeSpan _updateSpan, int _maxPerformed, int _bufferCapacity, string _pathToDb, ILoggerFactory _loggerFactory)
         {
             if (_maxPerformed <= 0)
                 throw new ArgumentOutOfRangeException($"{nameof(_maxPerformed)} must be greater than zero");
@@ -42,6 +43,7 @@ namespace VkGrabber
             m_updateSpan = _updateSpan;
             m_feedToPostsConverter = new NewsFeedToPostsConverter();
             m_logger = _loggerFactory.CreateLogger(typeof(Grabber));
+            m_contextFactory = new DbContextFactory(_pathToDb);
 
             m_logger.LogInformation("Grabber init with update interval: {UpdateSpan}", _updateSpan);
         }
@@ -76,7 +78,7 @@ namespace VkGrabber
             {
                 try
                 {
-                    await using var context = new GrabberDbContext();
+                    await using var context = m_contextFactory.CreateContext();
                     foreach (var dbUser in await context.DbUsers.ToListAsync(_cancellationToken))
                     {
                         var dtNow = DateTime.Now.ToUniversalTime();
@@ -130,7 +132,7 @@ namespace VkGrabber
 
                     var posts = new Posts();
 
-                    await using var context = new GrabberDbContext();
+                    await using var context = m_contextFactory.CreateContext();
 
                     foreach (var postGroup in postsGroup)
                     {
@@ -200,7 +202,7 @@ namespace VkGrabber
 
         private async Task CompleteGroupsUpdatingForUser(UserInfo _userInfo, IEnumerable<GroupInfo> _groups, DateTime _updateTime, CancellationToken _cancellationToken)
         {
-            await using var context = new GrabberDbContext();
+            await using var context = m_contextFactory.CreateContext();
             foreach (var group in _groups)
             {
                 var dbGroup = context.DbGroups.FirstOrDefault(_dbGroup =>
@@ -218,7 +220,7 @@ namespace VkGrabber
 
         private async Task ResetUpdatingStateForGroups(CancellationToken _cancellationToken)
         {
-            await using var context = new GrabberDbContext();
+            await using var context = m_contextFactory.CreateContext();
 
             await foreach (var group in context.DbGroups.Where(group => group.IsUpdating).AsAsyncEnumerable().WithCancellation(_cancellationToken))
             {

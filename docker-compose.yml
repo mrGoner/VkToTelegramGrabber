@@ -1,0 +1,12 @@
+version: '3.9'
+services:
+  vk-grabber:
+    image: vk-grabber
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    environment:
+      - grabber_token=%place_your_token_here%
+      - grabber_db_path=/db_storage
+    volumes: 
+      - ./%place_path_do_db_folder_on_host_here%:/db_storage

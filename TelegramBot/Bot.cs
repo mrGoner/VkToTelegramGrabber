@@ -32,7 +32,7 @@ namespace TelegramBot
         private readonly MessageQueue m_messageQueue;
         private readonly ILogger m_logger;
 
-        public Bot(string _token, IUserHelperSelector _helperSelector = null, HttpClient _proxy = null)
+        public Bot(string _token, string _pathToDb, IUserHelperSelector _helperSelector = null, HttpClient _proxy = null)
         {
             if (_token == null) 
                 throw new ArgumentNullException(nameof(_token));
@@ -48,11 +48,11 @@ namespace TelegramBot
             },
             new DefaultHelper());
 
-            m_userManager = new UserManager();
+            m_userManager = new UserManager(_pathToDb);
 
             var loggerFactory = new NLogLoggerFactory();
 
-            m_grabber = new Grabber(TimeSpan.FromMinutes(1), 20, 1000, loggerFactory);
+            m_grabber = new Grabber(TimeSpan.FromMinutes(1), 20, 1000, _pathToDb, loggerFactory);
             
             m_vkApi = new Vk();
             m_messageQueue = new MessageQueue(TimeSpan.FromSeconds(10), 4, SendMessage);

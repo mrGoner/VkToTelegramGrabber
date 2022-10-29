@@ -46,3 +46,7 @@ VkTools/obj/
 TestConsole/bin/
 TestConsole/obj/
 .idea
+
+out/
+
+grabber_data/
