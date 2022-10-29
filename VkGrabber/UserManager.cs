@@ -107,10 +107,6 @@ namespace VkGrabber
             if (dbUser == null)
                 return false;
 
-            var userGroups = await context.DbGroups.Where(_dbGroup => _dbGroup.DbUser.Id == dbUser.Id)
-                .ToArrayAsync(_cancellationToken);
-            context.DbGroups.RemoveRange(userGroups);
-
             context.DbUsers.Remove(dbUser);
 
             await context.SaveChangesAsync(_cancellationToken);

@@ -22,6 +22,17 @@ namespace VkGrabber.DataLayer
         {
             _optionsBuilder.UseSqlite($"Data Source={Path.Combine(m_pathToDb, "grabber.db")}");
         }
+
+        protected override void OnModelCreating(ModelBuilder _modelBuilder)
+        {
+            _modelBuilder.Entity<DbGroup>().HasOne(e => e.DbUser);
+
+            _modelBuilder
+                .Entity<DbUser>()
+                .HasMany(e => e.DbGroups)
+                .WithOne(e => e.DbUser)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
     }
 
     public class DbContextFactory
