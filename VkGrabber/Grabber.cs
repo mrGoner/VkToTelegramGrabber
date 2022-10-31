@@ -151,7 +151,7 @@ namespace VkGrabber
 
                             if (lastUpdatedElem != null)
                             {
-                                postsFromGroup = postsFromGroup.SkipWhile(_x => _x.PostId <= lastUpdatedElem.PostId)
+                                postsFromGroup = postsFromGroup.SkipWhile(_x => _x.PublishTime <= lastUpdatedElem.PublishTime)
                                     .ToList();
 
                                 m_logger.LogDebug(

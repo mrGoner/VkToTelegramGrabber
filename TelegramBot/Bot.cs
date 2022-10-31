@@ -52,9 +52,9 @@ namespace TelegramBot
 
             m_userManager = new UserManager(_pathToDb);
 
-            LogManager.Configuration.Variables["logs_dir"] = _logsDir;
-
             var loggerFactory = new NLogLoggerFactory();
+
+            LogManager.Configuration.Variables["logs_dir"] = _logsDir;
 
             m_grabber = new Grabber(TimeSpan.FromMinutes(1), 20, 1000, _pathToDb, loggerFactory);
             
