@@ -66,7 +66,10 @@ public class AttachmentsJsonConverter : JsonConverter<IAttachmentElement[]>
                     case "photo":
                         return JsonSerializer.Deserialize<PhotoAttachment>(ref reader);
                     default:
+                    {
+                        reader.Skip();
                         return new UnsupportedAttachment(attachmentType);
+                    }
                 }
             }
         }

@@ -89,16 +89,17 @@ namespace VkGrabber
 
                         if (groupsToUpdate.Any())
                         {
-                            var startDateTime = groupsToUpdate.Select(_group => _group.LastUpdateDateTime).Min();
-
                             groupsToUpdate.ForEach(_group => _group.IsUpdating = true);
 
                             await context.SaveChangesAsync(_cancellationToken);
 
-                            await m_processor.AddAsync(async () => await GetPostsFromGroup(
-                                new UserInfo(dbUser.Id, dbUser.Key, dbUser.Token), startDateTime, dtNow,
-                                groupsToUpdate.Select(_x => new GroupInfo(_x.GroupPrefix, _x.GroupId, _x.GroupName)).ToArray()
-                                , _cancellationToken), _cancellationToken);
+                            foreach (var group in groupsToUpdate)
+                            {
+                                await m_processor.AddAsync(async () => await GetPostsFromGroup(
+                                    new UserInfo(dbUser.Id, dbUser.Key, dbUser.Token), group.LastUpdateDateTime, dtNow,
+                                    new [] {new GroupInfo(group.GroupPrefix, group.GroupId, group.GroupName)}
+                                    , _cancellationToken), _cancellationToken);
+                            }
                         }
                     }
                 }
@@ -248,7 +249,7 @@ namespace VkGrabber
 
         public void Dispose()
         {
-            if(m_isDisposed)
+            if (m_isDisposed)
                 return;
 
             m_isDisposed = true;
