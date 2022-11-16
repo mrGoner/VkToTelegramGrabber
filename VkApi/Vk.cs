@@ -14,7 +14,7 @@ namespace VkApi
 {
     public class Vk
     {
-        private readonly NewsFeedDeserializer m_newsFeedDeserializer;
+        private readonly NewsFeedItemsDeserializer m_newsFeedItemsDeserializer;
         private readonly GroupsDeserializer m_groupsDeserializer;
         private readonly LikesDeserializer m_likesDeserializer;
         private readonly VideoInfoDeserializer m_videoInfoDeserializer;
@@ -23,7 +23,7 @@ namespace VkApi
 
         public Vk()
         {
-            m_newsFeedDeserializer = new NewsFeedDeserializer();
+            m_newsFeedItemsDeserializer = new NewsFeedItemsDeserializer();
             m_groupsDeserializer = new GroupsDeserializer();
             m_likesDeserializer = new LikesDeserializer();
             m_videoInfoDeserializer = new VideoInfoDeserializer();
@@ -33,26 +33,36 @@ namespace VkApi
         {
             try
             {
-                var request = RequestBuilder.BuildNewsFeedRequest(_userToken, CurrentVkVersion,
-                    _start, _end, _sourceIds);
-
                 using var requestExecutor = new RestClient(BaseUrl);
 
-                var responseData = await requestExecutor.ExecuteGetAsync(new RestRequest(request), _cancellationToken);
+                var fetchedItems = new List<INewsFeedElement>(10);
+                string nextToken = null;
 
-                var newsFeed = m_newsFeedDeserializer.Deserialize(responseData.Content);
+                do
+                {
+                    var request = RequestBuilder.BuildNewsFeedRequest(_userToken, CurrentVkVersion,
+                    _start, _end, _sourceIds, nextToken == null ? 50 : 70, nextToken);
+
+                    var responseData = await requestExecutor.ExecuteGetAsync(new RestRequest(request), _cancellationToken);
+
+                    var itemsWithToken = m_newsFeedItemsDeserializer.Deserialize(responseData.Content);
+
+                    fetchedItems.AddRange(itemsWithToken.Items);
+                    nextToken = itemsWithToken.NextToken;
+
+                } while (!string.IsNullOrWhiteSpace(nextToken));
 
                 var videosToEnrich = new List<VideoAttachment>(10);
 
-                foreach (var newsFeedElement in newsFeed)
+                foreach (var item in fetchedItems)
                 {
-                    if (newsFeedElement is Post post)
+                    if (item is Post post)
                         videosToEnrich.AddRange(ExtractVideoAttachmentsFromPost(post));
                 }
 
                 await EnrichVideoItems(_userToken, videosToEnrich, _cancellationToken);
 
-                return newsFeed;
+                return new NewsFeed(fetchedItems);
             }
             catch (DeserializerException)
             {

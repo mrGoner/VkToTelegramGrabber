@@ -8,12 +8,6 @@ namespace VkApi.Requests
 {
     internal static class RequestBuilder
     {
-        private const string m_groupTemplate = "groups.get?extended=1&offset={0}&access_token={1}&v={2}&count={3}";
-        private const string m_newsFeedTemplate = "newsfeed.get?filters=post&access_token={0}&v={1}&start_time={2}&end_time={3}&source_ids={4}&count={5}";
-        private const string m_urlTemplate = "https://oauth.vk.com/authorize?client_id={0}&display=page&redirect_uri=https://oauth.vk.com/blank.html&response_type=token&v={1}&scope={2}";
-        private const string m_getVideoTemplate = "video.get?extended=0&videos={0}&access_token={1}&v={2}&count={3}";
-        private const string m_addLikeTemplate = "likes.add?type={0}&owner_id={1}&item_id={2}&access_token={3}&v={4}";
-
         public static string BuildGroupRequest(string _token, string _apiVersion, int count, int offset = 0)
         {
             if (string.IsNullOrWhiteSpace(_token))
@@ -21,14 +15,14 @@ namespace VkApi.Requests
             if (string.IsNullOrWhiteSpace(_apiVersion))
                 throw new ArgumentException("Api version can not be null or empty!");
 
-            var groupRequest = string.Format(m_groupTemplate, offset, _token, _apiVersion, count);
+            var groupRequest = $"groups.get?extended=1&offset={offset}&access_token={_token}&v={_apiVersion}&count={count}";
 
             return groupRequest;
         }
 
         public static string BuildNewsFeedRequest(string _token, string _apiVersion,
                                                   DateTime _startTime, DateTime _endTime,
-                                                  string _sourceIds, int _count = 50)
+                                                  string _sourceIds, int _count = 50, string nextToken = null)
         {
             if (string.IsNullOrWhiteSpace(_token))
                 throw new ArgumentException("Token can not be null or empty!");
@@ -42,8 +36,10 @@ namespace VkApi.Requests
             var epochStartTime = EpochTimeConverter.ConvertFromDateTime(_startTime);
             var epochEndTime = EpochTimeConverter.ConvertFromDateTime(_endTime);
 
-            var newsfeedRequest = string.Format(m_newsFeedTemplate, _token,
-                            _apiVersion, epochStartTime, epochEndTime, _sourceIds, _count);
+            var newsfeedRequest = $"newsfeed.get?filters=post&access_token={_token}&v={_apiVersion}&start_time={epochStartTime}&end_time={epochEndTime}&source_ids={_sourceIds}&count={_count}";
+
+            if (nextToken != null)
+                newsfeedRequest += $"start_from={nextToken}";
 
             return newsfeedRequest;
         }
@@ -57,7 +53,7 @@ namespace VkApi.Requests
                 throw new ArgumentException("Api version can not be null or empty!");
 
             var video = $"{_ownerId}_{_videoId}";
-            var videoRequest = string.Format(m_getVideoTemplate, video, _token, _apiVersion, 1);
+            var videoRequest = $"video.get?extended=0&videos={video}&access_token={_token}&v={_apiVersion}&count=1";
 
             return videoRequest;
         }
@@ -68,9 +64,9 @@ namespace VkApi.Requests
             if (string.IsNullOrWhiteSpace(_apiVersion))
                 throw new ArgumentException("Api version can not be null or white space!");
 
-            var scope = string.Join(',', _permissions.GetFlags().Select(_x=> _x.ToString().ToLowerInvariant()));
+            var scope = string.Join(',', _permissions.GetFlags().Select(_x => _x.ToString().ToLowerInvariant()));
 
-            var url = string.Format(m_urlTemplate, _applicationId, _apiVersion, scope);
+            var url = $"https://oauth.vk.com/authorize?client_id={_applicationId}&display=page&redirect_uri=https://oauth.vk.com/blank.html&response_type=token&v={_apiVersion}&scope={scope}";
 
             return url;
         }
@@ -79,8 +75,11 @@ namespace VkApi.Requests
         {
             if (string.IsNullOrWhiteSpace(_token))
                 throw new ArgumentException("Token can not be null or empty", nameof(_token));
+                
+            if (string.IsNullOrWhiteSpace(_apiVersion))
+                throw new ArgumentException("Api version can not be null or empty!");
 
-            var url = string.Format(m_addLikeTemplate, _type.ConvertToSnakeCase(), _ownerId, _itemId, _token, _apiVersion);
+            var url = $"likes.add?type={_type.ConvertToSnakeCase()}&owner_id={_ownerId}&item_id={_itemId}&access_token={_token}&v={_apiVersion}";
 
             return url;
         }

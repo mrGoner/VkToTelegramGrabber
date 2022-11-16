@@ -93,13 +93,12 @@ namespace VkGrabber
 
                             await context.SaveChangesAsync(_cancellationToken);
 
-                            foreach (var group in groupsToUpdate)
-                            {
-                                await m_processor.AddAsync(async () => await GetPostsFromGroup(
-                                    new UserInfo(dbUser.Id, dbUser.Key, dbUser.Token), group.LastUpdateDateTime, dtNow,
-                                    new [] {new GroupInfo(group.GroupPrefix, group.GroupId, group.GroupName)}
-                                    , _cancellationToken), _cancellationToken);
-                            }
+                            var startDateTime = groupsToUpdate.Min(group => group.LastUpdateDateTime);
+
+                            await m_processor.AddAsync(async () => await GetPostsFromGroup(
+                                new UserInfo(dbUser.Id, dbUser.Key, dbUser.Token), startDateTime, dtNow,
+                                groupsToUpdate.Select(group => new GroupInfo(group.GroupPrefix, group.GroupId, group.GroupName)).ToArray(),
+                                _cancellationToken), _cancellationToken);
                         }
                     }
                 }
