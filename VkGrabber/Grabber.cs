@@ -19,7 +19,7 @@ namespace VkGrabber
         public event NewDataGrabbed NewDataGrabbedEventHandler;
         private readonly Vk m_vkApi;
         private readonly NewsFeedToPostsConverter m_feedToPostsConverter;
-        private readonly PostComparer m_postComparer = new PostComparer();
+        private readonly PostComparer m_postComparer = new();
         private CancellationTokenSource m_tokenSource;
         private readonly ILogger m_logger;
         private bool m_isDisposed;
@@ -93,11 +93,11 @@ namespace VkGrabber
 
                             await context.SaveChangesAsync(_cancellationToken);
 
-                            var startDateTime = groupsToUpdate.Min(group => group.LastUpdateDateTime);
+                            var startDateTime = groupsToUpdate.Min(_group => _group.LastUpdateDateTime);
 
                             await m_processor.AddAsync(async () => await GetPostsFromGroup(
                                 new UserInfo(dbUser.Id, dbUser.Key, dbUser.Token), startDateTime, dtNow,
-                                groupsToUpdate.Select(group => new GroupInfo(group.GroupPrefix, group.GroupId, group.GroupName)).ToArray(),
+                                groupsToUpdate.Select(_group => new GroupInfo(_group.GroupPrefix, _group.GroupId, _group.GroupName)).ToArray(),
                                 _cancellationToken), _cancellationToken);
                         }
                     }
@@ -151,12 +151,18 @@ namespace VkGrabber
 
                             if (lastUpdatedElem != null)
                             {
-                                postsFromGroup = postsFromGroup.SkipWhile(_x => _x.PublishTime <= lastUpdatedElem.PublishTime)
+                                m_logger.LogInformation("Groups before cutting : {Ids}",
+                                    string.Join(",", postsFromGroup.Select(_post => _post.PostId)));
+                                
+                                postsFromGroup = postsFromGroup.SkipWhile(_x => _x.PostId <= lastUpdatedElem.PostId)
                                     .ToList();
 
                                 m_logger.LogDebug(
                                     "Find post equals to lastUpdatedPost with id {DbGroupLastUpdatedPostId}, cutting completed",
                                     dbGroup.LastUpdatedPostId);
+                                
+                                m_logger.LogInformation("Groups after cutting : {Ids}",
+                                    string.Join(",", postsFromGroup.Select(_post => _post.PostId)));
                             }
 
                             if (postsFromGroup.Count > 0)
@@ -242,7 +248,7 @@ namespace VkGrabber
                 if (_y is null)
                     return -1;
 
-                return _x.PublishTime.CompareTo(_y.PublishTime);
+                return _x.PostId.CompareTo(_y.PostId);
             }
         }
 

@@ -29,10 +29,9 @@ namespace VkGrabber.Converters
                 {
                     Post post;
 
-                    string groupName = string.Empty;
-                    int clearSourceId = Math.Abs(vkPost.SourceId);
+                    var clearSourceId = Math.Abs(vkPost.SourceId);
 
-                    _groups.TryGetValue(clearSourceId, out groupName);
+                    _groups.TryGetValue(clearSourceId, out var groupName);
 
                     if (vkPost.CopyHistory != null && vkPost.CopyHistory.Any())
                     {
