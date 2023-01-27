@@ -22,7 +22,7 @@ namespace VkApi.Requests
 
         public static string BuildNewsFeedRequest(string _token, string _apiVersion,
                                                   DateTime _startTime, DateTime _endTime,
-                                                  string _sourceIds, int _count = 50, string nextToken = null)
+                                                  string _sourceIds, int _count = 50, string _nextToken = null)
         {
             if (string.IsNullOrWhiteSpace(_token))
                 throw new ArgumentException("Token can not be null or empty!");
@@ -38,8 +38,8 @@ namespace VkApi.Requests
 
             var newsfeedRequest = $"newsfeed.get?filters=post&access_token={_token}&v={_apiVersion}&start_time={epochStartTime}&end_time={epochEndTime}&source_ids={_sourceIds}&count={_count}";
 
-            if (nextToken != null)
-                newsfeedRequest += $"start_from={nextToken}";
+            if (_nextToken != null)
+                newsfeedRequest += $"&start_from={_nextToken}";
 
             return newsfeedRequest;
         }
