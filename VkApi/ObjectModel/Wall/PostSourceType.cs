@@ -2,6 +2,7 @@
 {
     public enum PostSourceType
     {
+        MVk,
         Vk,
         Api,
         Widget,
