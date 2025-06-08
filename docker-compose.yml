@@ -1,4 +1,3 @@
-version: '3.9'
 services:
   vk-grabber:
     image: vk-grabber
@@ -9,6 +8,6 @@ services:
       - grabber_token=%place_your_token_here%
       - grabber_db_path=/db_storage
       - grabber_logs_dir=/logs
-    volumes: 
+    volumes:
       - ./%place_path_to_db_folder_on_host_here%:/db_storage
       - ./%place_path_to_logs_on_host_here%:/logs

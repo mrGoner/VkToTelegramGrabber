@@ -4,6 +4,6 @@ namespace VkApi.ObjectModel;
 
 public class VideoInfo
 {
-    [JsonPropertyName("player")]
+    [JsonPropertyName("player")] 
     public string PlayerUrl { get; set; }
 }

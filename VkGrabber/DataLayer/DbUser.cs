@@ -1,12 +1,11 @@
 ﻿using System.Collections.Generic;
 
-namespace VkGrabber.DataLayer
+namespace VkGrabber.DataLayer;
+
+public class DbUser
 {
-    public class DbUser
-    {
-        public int Id { get; set; }
-        public string Key { get; set; }
-        public string Token { get; set; }
-        public virtual ICollection<DbGroup> DbGroups { get; set; }
-    }
+    public int Id { get; set; }
+    public string Key { get; set; }
+    public string Token { get; set; }
+    public virtual ICollection<DbGroup> DbGroups { get; set; }
 }

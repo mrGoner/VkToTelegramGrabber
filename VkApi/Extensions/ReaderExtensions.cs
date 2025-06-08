@@ -8,10 +8,9 @@ public static class ReaderExtensions
     {
         do
         {
-            if(reader.TokenType == JsonTokenType.StartObject)
+            if (reader.TokenType == JsonTokenType.StartObject)
                 break;
-
-        }while(reader.Read());
+        } while (reader.Read());
 
         return reader;
     }

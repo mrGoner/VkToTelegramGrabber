@@ -1,8 +1,7 @@
-﻿namespace VkApi.ObjectModel.Attachments
+﻿namespace VkApi.ObjectModel.Attachments;
+
+public interface IAttachmentElement
 {
-    public interface IAttachmentElement
-    {
-        AttachmentElementType Type { get; }
-        string AccessKey { get; }
-    }
+    AttachmentElementType Type { get; }
+    string AccessKey { get; }
 }

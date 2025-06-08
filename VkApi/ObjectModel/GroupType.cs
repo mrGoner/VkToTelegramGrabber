@@ -1,9 +1,8 @@
-﻿namespace VkApi.ObjectModel
+﻿namespace VkApi.ObjectModel;
+
+public enum GroupType
 {
-    public enum GroupType
-    {
-        Group,
-        Page,
-        Event
-    }
+    Group,
+    Page,
+    Event
 }

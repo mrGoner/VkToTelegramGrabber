@@ -1,7 +1,6 @@
-﻿namespace VkApi.ObjectModel.Wall
+﻿namespace VkApi.ObjectModel.Wall;
+
+public interface INewsFeedElement
 {
-    public interface INewsFeedElement
-    {
-        NewsFeedType Type { get; }
-    }
+    NewsFeedType Type { get; }
 }

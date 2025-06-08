@@ -1,7 +1,6 @@
-﻿namespace VkApi.ObjectModel.Wall
+﻿namespace VkApi.ObjectModel.Wall;
+
+public enum NewsFeedType
 {
-    public enum NewsFeedType
-    {
-        Post
-    }
+    Post
 }

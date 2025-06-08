@@ -1,7 +1,5 @@
-﻿namespace VkGrabber.Model
-{
-    public interface IPostItem
-    {
+﻿namespace VkGrabber.Model;
 
-    }
+public interface IPostItem
+{
 }

@@ -17,9 +17,9 @@ public static class EnumExtensions
 
         sb.Append(char.ToLowerInvariant(enumString[0]));
 
-        for (int i = 1; i < enumString.Length; ++i)
+        for (var i = 1; i < enumString.Length; ++i)
         {
-            char c = enumString[i];
+            var c = enumString[i];
             if (char.IsUpper(c))
             {
                 sb.Append('_');
@@ -30,6 +30,7 @@ public static class EnumExtensions
                 sb.Append(c);
             }
         }
+
         return sb.ToString();
     }
 
@@ -39,7 +40,9 @@ public static class EnumExtensions
             throw new ArgumentException($"{typeof(T)} must be enum!");
 
         foreach (Enum value in Enum.GetValues(input.GetType()))
+        {
             if (input.HasFlag(value))
                 yield return value;
+        }
     }
 }

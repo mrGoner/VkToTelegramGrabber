@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <LangVersion>latestmajor</LangVersion>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <LangVersion>latestmajor</LangVersion>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="RestSharp" Version="108.0.2" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Requests\" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="RestSharp" Version="112.1.0"/>
+    </ItemGroup>
+    <ItemGroup>
+        <Folder Include="Requests\"/>
+    </ItemGroup>
 </Project>

@@ -1,13 +1,13 @@
 ﻿using TelegramBot.Helpers;
 
-namespace TelegramBot.UserHelpers
-{
+namespace TelegramBot.UserHelpers;
 
-    public class DefaultHelper : IDefaultHelper
+public class DefaultHelper : IDefaultHelper
+{
+    public Response GetDefaultResponse()
     {
-        public Response GetDefaultResponce()
-        {
-            return new Response("Неопознанная команда! \n /register для регистрации \n /manage для управления группами и аккаунтом", KeyBoardBuilder.EmptyKeyboard);
-        }
+        return new Response(
+            "Неопознанная команда! \n /register для регистрации \n /manage для управления группами и аккаунтом",
+            KeyBoardBuilder.EmptyKeyboard);
     }
 }

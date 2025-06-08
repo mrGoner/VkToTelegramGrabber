@@ -1,11 +1,10 @@
 ﻿using TelegramBot.UserHelpers;
 
-namespace TelegramBot
-{
-    public interface IUserHelperSelector
-    {
-        bool TryGetCompatibleHelper(string _command, out IUserHelper _helper);
+namespace TelegramBot;
 
-        IDefaultHelper DefaultHelper { get; }
-    }
+public interface IUserHelperSelector
+{
+    bool TryGetCompatibleHelper(string _command, out IUserHelper _helper);
+
+    IDefaultHelper DefaultHelper { get; }
 }

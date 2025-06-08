@@ -1,7 +1,6 @@
-﻿namespace TelegramBot.UserHelpers
+﻿namespace TelegramBot.UserHelpers;
+
+public interface IDefaultHelper
 {
-    public interface IDefaultHelper
-    {
-        Response GetDefaultResponce();
-    }
+    Response GetDefaultResponse();
 }

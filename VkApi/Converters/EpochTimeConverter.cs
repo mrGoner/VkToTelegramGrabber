@@ -1,23 +1,22 @@
 ﻿using System;
 
-namespace VkApi.Converters
+namespace VkApi.Converters;
+
+public static class EpochTimeConverter
 {
-    public static class EpochTimeConverter
+    private static readonly DateTime m_startTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    public static DateTime ConvertToDateTime(long _seconds)
     {
-        private static readonly DateTime m_startTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        return m_startTime.AddSeconds(_seconds);
+    }
 
-        public static DateTime ConvertToDateTime(long _seconds)
-        {
-            return m_startTime.AddSeconds(_seconds);
-        }
+    public static long ConvertFromDateTime(DateTime _dateTime)
+    {
+        var span = _dateTime - m_startTime;
 
-        public static long ConvertFromDateTime(DateTime _dateTime)
-        {
-            var span = _dateTime - m_startTime;
+        var seconds = (long)span.TotalSeconds;
 
-            var seconds = (long)span.TotalSeconds;
-
-            return seconds;
-        }
+        return seconds;
     }
 }

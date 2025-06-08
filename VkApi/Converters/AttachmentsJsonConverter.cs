@@ -14,16 +14,17 @@ namespace VkApi.Converters;
 
 public class AttachmentsJsonConverter : JsonConverter<IAttachmentElement[]>
 {
-    public override IAttachmentElement[] Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override IAttachmentElement[] Read(ref Utf8JsonReader reader, Type typeToConvert,
+        JsonSerializerOptions options)
     {
-        if(reader.TokenType != JsonTokenType.StartArray)
-         return Array.Empty<IAttachmentElement>();
+        if (reader.TokenType != JsonTokenType.StartArray)
+            return [];
 
         var attachments = new List<IAttachmentElement>();
 
         while (reader.Read())
         {
-            if(reader.TokenType == JsonTokenType.EndArray)
+            if (reader.TokenType == JsonTokenType.EndArray)
                 break;
             switch (reader.TokenType)
             {
@@ -34,15 +35,15 @@ public class AttachmentsJsonConverter : JsonConverter<IAttachmentElement[]>
                     break;
             }
         }
-        
+
         return attachments.ToArray();
     }
 
     private IAttachmentElement ParseAttachment(ref Utf8JsonReader reader)
-    {        
+    {
         while (reader.Read())
         {
-            if(reader.TokenType == JsonTokenType.EndObject)
+            if (reader.TokenType == JsonTokenType.EndObject)
                 return null;
 
             if (reader.TokenType == JsonTokenType.PropertyName && reader.GetString() == "type")
@@ -52,7 +53,7 @@ public class AttachmentsJsonConverter : JsonConverter<IAttachmentElement[]>
                 var attachmentType = reader.GetString();
 
                 reader.ReadToNextObject();
-               
+
                 switch (attachmentType)
                 {
                     case "video":

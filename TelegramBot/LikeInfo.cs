@@ -1,12 +1,11 @@
 ﻿using System;
 
-namespace TelegramBot
+namespace TelegramBot;
+
+[Serializable]
+internal class LikeInfo
 {
-    [Serializable]
-    internal class LikeInfo
-    {
-        public int OwnerId { get; set; }
-        public int ItemId { get; set; }
-        public bool IsLiked { get; set; }
-    }
+    public int OwnerId { get; set; }
+    public int ItemId { get; set; }
+    public bool IsLiked { get; set; }
 }

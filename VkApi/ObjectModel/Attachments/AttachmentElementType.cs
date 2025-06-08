@@ -1,12 +1,12 @@
-﻿namespace VkApi.ObjectModel.Attachments
+﻿namespace VkApi.ObjectModel.Attachments;
+
+public enum AttachmentElementType
 {
-    public enum AttachmentElementType
-    {
-        Photo,
-        Video,
-        Audio,
-        Doc,
-        Link,
-        Unsupported
-    }
+    Photo,
+    Video,
+    Audio,
+    Doc,
+    Link,
+    Note,
+    Unsupported
 }

@@ -1,10 +1,9 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace VkApi.ObjectModel
+namespace VkApi.ObjectModel;
+
+public struct Views
 {
-    public struct Views
-    {
-        [JsonPropertyName("count")]
-        public int Count { get; }
-    }
+    [JsonPropertyName("count")] 
+    public int Count { get; set; }
 }
