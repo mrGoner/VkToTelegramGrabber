@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using VkApi.Serializers;
 
 namespace VkGrabber;
 
@@ -38,7 +39,7 @@ public class Grabber : IDisposable
         if (_bufferCapacity <= 0)
             throw new ArgumentOutOfRangeException($"{nameof(_bufferCapacity)} must be greater than zero");
 
-        if (_updateSpan == default)
+        if (_updateSpan == TimeSpan.Zero)
             throw new ArgumentException($"{nameof(_updateSpan)} must be set");
 
         m_processor = new Processor(_maxPerformed, _bufferCapacity);
@@ -188,16 +189,17 @@ public class Grabber : IDisposable
 
                 m_logger.LogDebug("Getting {PostsCount} posts", posts.Count);
 
-                if (posts.Any()) 
+                if (posts.Any())
                     NewDataGrabbedEventHandler?.Invoke(_user.Key, posts);
             }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception)
+            catch (DeserializerException)
             {
                 await CompleteGroupsUpdatingForUser(_user, _groups, _end, _cancellationToken);
+                throw;
+            }
+            catch (VkException)
+            {
+                await ResetGroupUpdatingForUser(_user, _cancellationToken);
                 throw;
             }
         }
@@ -227,6 +229,16 @@ public class Grabber : IDisposable
             dbGroup.IsUpdating = false;
         }
 
+        await context.SaveChangesAsync(_cancellationToken);
+    }
+
+    private async Task ResetGroupUpdatingForUser(UserInfo _userInfo, CancellationToken _cancellationToken)
+    {
+        await using var context = m_contextFactory.CreateContext();
+
+        foreach (var dbGroup in context.DbGroups.Where(_dbGroup => _dbGroup.DbUser.Id == _userInfo.Id))
+            dbGroup.IsUpdating = false;
+        
         await context.SaveChangesAsync(_cancellationToken);
     }
 
@@ -268,7 +280,3 @@ public class Grabber : IDisposable
         m_tokenSource.Dispose();
     }
 }
-
-internal record GroupInfo(string Prefix, int Id, string Name);
-
-internal record UserInfo(int Id, string Key, string Token);

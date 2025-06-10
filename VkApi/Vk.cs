@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 
 namespace VkApi;
 
@@ -46,10 +47,16 @@ public class Vk
 
                 var responseData = await requestExecutor.ExecuteGetAsync(new RestRequest(request), _cancellationToken);
 
+                if (!responseData.IsSuccessStatusCode)
+                    throw new HttpRequestException($"Status code {responseData.StatusCode} not indicate success");
+
                 var itemsWithToken = m_newsFeedItemsDeserializer.Deserialize(responseData.Content);
 
                 fetchedItems.AddRange(itemsWithToken.Items);
                 nextToken = itemsWithToken.NextToken;
+
+                if (!string.IsNullOrWhiteSpace(nextToken))
+                    await Task.Delay(TimeSpan.FromSeconds(1), _cancellationToken); // for avoiding request limiter
             } while (!string.IsNullOrWhiteSpace(nextToken));
 
             var videosToEnrich = new List<VideoAttachment>(10);
@@ -109,7 +116,7 @@ public class Vk
             using var requestExecutor = new RestClient(BaseUrl);
 
             var responseData = await requestExecutor.ExecuteGetAsync(new RestRequest(request), _cancellationToken);
-
+            
             var likesCount = m_likesDeserializer.ParseLikesCount(responseData.Content);
 
             return likesCount;
@@ -146,15 +153,17 @@ public class Vk
             var videoInfo = m_videoInfoDeserializer.Deserialize(responseData.Content);
 
             videoAttachment.PlayerUrl = videoInfo?.PlayerUrl;
+
+            await Task.Delay(TimeSpan.FromSeconds(1), _cancellationToken); //to avoid request limiter 
         }
     }
 
-    private IReadOnlyCollection<VideoAttachment> ExtractVideoAttachmentsFromPost(Post _post)
+    private static IReadOnlyCollection<VideoAttachment> ExtractVideoAttachmentsFromPost(Post _post)
     {
         var videosToEnrich = new List<VideoAttachment>();
 
-        var videoAttachments = _post.Attachments.OfType<VideoAttachment>().Where(video =>
-            string.IsNullOrWhiteSpace(video.PlayerUrl) && video.IsContentRestricted == false);
+        var videoAttachments = _post.Attachments.OfType<VideoAttachment>().Where(_video =>
+            string.IsNullOrWhiteSpace(_video.PlayerUrl) && _video.IsContentRestricted == false);
 
         videosToEnrich.AddRange(videoAttachments);
 
