@@ -4,7 +4,7 @@ using VkApi.Converters;
 namespace VkApi.ObjectModel;
 
 /// <summary>
-/// For more https://vk.com/dev/objects/post
+/// For more https://vk.ru/dev/objects/post
 /// </summary>
 public struct Comments
 {

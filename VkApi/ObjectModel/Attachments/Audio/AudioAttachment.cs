@@ -3,7 +3,7 @@
 namespace VkApi.ObjectModel.Attachments.Audio;
 
 /// <summary>
-/// Audio attachment. For more https://dev.vk.com/reference/objects/audio
+/// Audio attachment. For more https://dev.vk.ru/reference/objects/audio
 /// </summary>
 public class AudioAttachment : IAttachmentElement
 {

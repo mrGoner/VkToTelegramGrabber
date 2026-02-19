@@ -5,7 +5,7 @@ using VkApi.Converters;
 namespace VkApi.ObjectModel.Attachments.Video;
 
 /// <summary>
-/// Video attachment. https://vk.com/dev/objects/video
+/// Video attachment. https://vk.ru/dev/objects/video
 /// </summary>
 public class VideoAttachment : IAttachmentElement
 {

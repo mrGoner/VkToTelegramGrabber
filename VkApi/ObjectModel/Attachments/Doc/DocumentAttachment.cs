@@ -5,7 +5,7 @@ using VkApi.Converters;
 namespace VkApi.ObjectModel.Attachments.Doc;
 
 /// <summary>
-/// Document attachment. For more https://vk.com/dev/objects/doc
+/// Document attachment. For more https://vk.ru/dev/objects/doc
 /// </summary>
 public class DocumentAttachment : IAttachmentElement
 {

@@ -20,7 +20,7 @@ public class Vk
     private readonly LikesDeserializer m_likesDeserializer;
     private readonly VideoInfoDeserializer m_videoInfoDeserializer;
     private const string CurrentVkVersion = "5.199";
-    private const string BaseUrl = "https://api.vk.com/method";
+    private const string BaseUrl = "https://api.vk.ru/method";
 
     public Vk()
     {

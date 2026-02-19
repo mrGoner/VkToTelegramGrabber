@@ -26,7 +26,7 @@ public class UserRegisterHelper : IUserHelper
             {
                 m_waitingForId = true;
                 return new Response("Для регистрации необходимо выполнить следующие шаги: \n" +
-                                    "1) Перейти по ссылке https://vk.com/apps?act=manage и создать новое standalone приложение \n" +
+                                    "1) Перейти по ссылке https://vk.ru/apps?act=manage и создать новое standalone приложение \n" +
                                     "2) Прислать id приложения (находится в настройках созданного приложения) \n" +
                                     "3) В ответ я сгенерирую ссылку, перейдя по которой необходимо будет прислать мне access token \n \n" +
                                     "Кажется сложным? Исходники бота можно найти по ссылке https://github.com/mrGoner/VkToTelegramGrabber и развернуть своего собственного! \n" +

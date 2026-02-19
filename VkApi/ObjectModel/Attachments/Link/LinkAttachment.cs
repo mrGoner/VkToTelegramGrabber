@@ -3,7 +3,7 @@
 namespace VkApi.ObjectModel.Attachments.Link;
 
 /// <summary>
-/// Link attachment. For more https://dev.vk.com/reference/objects/link
+/// Link attachment. For more https://dev.vk.ru/reference/objects/link
 /// </summary>
 public class LinkAttachment : IAttachmentElement
 {

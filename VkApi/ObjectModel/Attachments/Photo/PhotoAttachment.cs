@@ -5,7 +5,7 @@ using VkApi.Converters;
 namespace VkApi.ObjectModel.Attachments.Photo;
 
 /// <summary>
-/// Photo attachment. For more https://vk.com/dev/objects/photo
+/// Photo attachment. For more https://vk.ru/dev/objects/photo
 /// </summary>
 public class PhotoAttachment : IAttachmentElement
 {

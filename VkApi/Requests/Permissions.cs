@@ -3,7 +3,7 @@
 namespace VkApi.Requests;
 
 /// <summary>
-/// Permissions. For more https://vk.com/dev/permissions
+/// Permissions. For more https://vk.ru/dev/permissions
 /// </summary>
 [Flags]
 public enum Permissions

@@ -1,7 +1,7 @@
 ﻿namespace VkApi.ObjectModel.Attachments.Photo;
 
 /// <summary>
-/// Photo size type. For more see https://vk.com/dev/photo_sizes
+/// Photo size type. For more see https://vk.ru/dev/photo_sizes
 /// </summary>
 public enum PhotoSizeType
 {

@@ -68,7 +68,7 @@ internal static class RequestBuilder
         var scope = string.Join(',', _permissions.GetFlags().Select(_x => _x.ToString().ToLowerInvariant()));
 
         var url =
-            $"https://oauth.vk.com/authorize?client_id={_applicationId}&display=page&redirect_uri=https://oauth.vk.com/blank.html&response_type=token&v={_apiVersion}&scope={scope}";
+            $"https://oauth.vk.ru/authorize?client_id={_applicationId}&display=page&redirect_uri=https://oauth.vk.ru/blank.html&response_type=token&v={_apiVersion}&scope={scope}";
 
         return url;
     }
