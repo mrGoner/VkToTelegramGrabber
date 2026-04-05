@@ -1,33 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Reflection;
+using Microsoft.Extensions.Logging;
 using TelegramBot.UserHelpers;
 
 namespace TelegramBot;
 
-public class BasicHelpersSelector : IUserHelperSelector
+public class BasicHelpersSelector(
+    IReadOnlyDictionary<string, Type> helpersMap,
+    IDefaultHelper defaultHelper,
+    ILoggerFactory loggerFactory)
+    : IUserHelperSelector
 {
-    private readonly List<IUserHelper> m_helpers;
+    public IDefaultHelper DefaultHelper { get; } = defaultHelper ?? throw new ArgumentNullException(nameof(defaultHelper));
 
-    public BasicHelpersSelector(List<IUserHelper> _helpers, IDefaultHelper _defaultHelper)
+    public bool TryGetCompatibleHelper(string command, out IUserHelper? helper)
     {
-        m_helpers = _helpers ?? throw new ArgumentNullException(nameof(_helpers));
-        DefaultHelper = _defaultHelper ?? throw new ArgumentNullException(nameof(_defaultHelper));
-    }
+        helper = null;
 
-    public IDefaultHelper DefaultHelper { get; }
-
-    public bool TryGetCompatibleHelper(string _command, out IUserHelper _helper)
-    {
-        _helper = null;
-
-        var type = m_helpers.FirstOrDefault(_h => _h.Command == _command)?.GetType();
+        var type = helpersMap.TryGetValue(command, out var helperType) ? helperType : null;
 
         if (type == null)
             return false;
 
-        _helper = (IUserHelper)Activator.CreateInstance(type);
+        helper = Activator.CreateInstance(type, BindingFlags.CreateInstance, null, loggerFactory.CreateLogger(type)) as IUserHelper;
 
-        return true;
+        return helper is not null;
     }
 }

@@ -6,17 +6,20 @@ namespace VkApi.Serializers;
 
 public class GroupsDeserializer
 {
-    public Groups Deserialize(string _data)
+    public Groups Deserialize(string data)
     {
         try
         {
-            using var document = JsonDocument.Parse(_data);
+            using var document = JsonDocument.Parse(data);
 
-            return new Groups(document.RootElement.GetProperty("response").GetProperty("items").Deserialize<Group[]>());
+            var groups = document.RootElement.GetProperty("response").GetProperty("items").Deserialize<Group[]>() ??
+                         throw new InvalidOperationException($"Failed to deserialize groups from data {data}");
+
+            return new Groups(groups);
         }
         catch (Exception ex)
         {
-            throw new DeserializerException("Failed to deserialize groups", _data, ex);
+            throw new DeserializerException("Failed to deserialize groups", data, ex);
         }
     }
 }

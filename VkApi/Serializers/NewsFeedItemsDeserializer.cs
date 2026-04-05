@@ -6,25 +6,26 @@ namespace VkApi.Serializers;
 
 public class NewsFeedItemsDeserializer
 {
-    public (INewsFeedElement[] Items, string NextToken) Deserialize(string _data)
+    public (INewsFeedElement[] Items, string? NextToken) Deserialize(string data)
     {
         try
         {
-            using var document = JsonDocument.Parse(_data);
+            using var document = JsonDocument.Parse(data);
             var response = document.RootElement.GetProperty("response");
 
-            var deserializedPosts = response.GetProperty("items").Deserialize<Post[]>();
+            var deserializedPosts = response.GetProperty("items").Deserialize<Post[]>() ??
+                                    throw new InvalidOperationException($"Failed to deserialize newsfeed items from data {data}");
 
-            string nextToken = null;
+            string? nextToken = null;
 
             if (response.TryGetProperty("next_from", out var nextFromProp))
                 nextToken = nextFromProp.GetString();
 
-            return (deserializedPosts ?? [], nextToken);
+            return (deserializedPosts, nextToken);
         }
         catch (Exception ex)
         {
-            throw new DeserializerException("Failed to deserialize newsfeed", _data, ex);
+            throw new DeserializerException("Failed to deserialize newsfeed", data, ex);
         }
     }
 }

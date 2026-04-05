@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using VkApi.Converters;
 
 namespace VkApi.ObjectModel.Attachments.Photo;
 

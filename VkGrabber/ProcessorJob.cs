@@ -3,13 +3,8 @@ using System.Threading.Tasks;
 
 namespace VkGrabber;
 
-internal class ProcessorJob
+internal class ProcessorJob(Func<Task> action)
 {
     public Guid Id => Guid.NewGuid();
-    public Func<Task> PlannedAction { get; }
-
-    public ProcessorJob(Func<Task> _action)
-    {
-        PlannedAction = _action;
-    }
+    public Func<Task> PlannedAction { get; } = action;
 }

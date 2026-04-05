@@ -1,12 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
-    <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
-        <LangVersion>latestmajor</LangVersion>
-    </PropertyGroup>
-
     <ItemGroup>
-        <PackageReference Include="RestSharp" Version="112.1.0"/>
+        <PackageReference Include="RestSharp" Version="114.0.0" />
     </ItemGroup>
     <ItemGroup>
         <Folder Include="Requests\"/>

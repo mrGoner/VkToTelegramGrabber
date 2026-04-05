@@ -9,10 +9,10 @@ public class Group
     public int Id { get; set; }
 
     [JsonPropertyName("name")] 
-    public string Name { get; set; }
+    public string Name { get; set; } = null!;
 
     [JsonPropertyName("screen_name")] 
-    public string ScreenName { get; set; }
+    public string? ScreenName { get; set; }
 
     [JsonPropertyName("is_closed")] 
     public int IsClosed { get; set; }
@@ -32,13 +32,4 @@ public class Group
     [JsonPropertyName("is_advertiser")]
     [JsonConverter(typeof(IntToBoolJsonConverter))]
     public bool IsAdvertiser { get; set; }
-
-    [JsonPropertyName("photo_50")] 
-    public string PhotoSmall { get; set; }
-
-    [JsonPropertyName("photo_100")] 
-    public string PhotoMedium { get; set; }
-
-    [JsonPropertyName("photo_200")] 
-    public string PhotoLarge { get; set; }
 }

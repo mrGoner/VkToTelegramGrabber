@@ -11,7 +11,7 @@ public static class EnumExtensions
         if (!typeof(T).IsEnum)
             throw new ArgumentException($"{typeof(T)} must be enum!");
 
-        var enumString = enumValue.ToString();
+        var enumString = enumValue.ToString()!;
 
         var sb = new StringBuilder();
 

@@ -39,7 +39,7 @@ public class AttachmentsJsonConverter : JsonConverter<IAttachmentElement[]>
         return attachments.ToArray();
     }
 
-    private IAttachmentElement ParseAttachment(ref Utf8JsonReader reader)
+    private IAttachmentElement? ParseAttachment(ref Utf8JsonReader reader)
     {
         while (reader.Read())
         {

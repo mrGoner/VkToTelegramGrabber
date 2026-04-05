@@ -2,6 +2,4 @@
 
 namespace VkGrabber.Model;
 
-public class Posts : List<Post>
-{
-}
+public class Posts : List<Post>;

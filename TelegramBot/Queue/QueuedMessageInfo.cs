@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using VkGrabber.Model;
 
 namespace TelegramBot.Queue;
@@ -9,23 +8,25 @@ internal class QueuedMessageInfo
 {
     public DateTime LastSendTime { get; set; }
     public bool Used { get; set; }
+    
+    public int FailedCount { get; set; }
 
     public Queue<Post> Posts { get; } = new();
 
-    public QueuedMessageInfo(Post _post)
+    public QueuedMessageInfo(Post post)
     {
-        if (_post is null)
-            throw new ArgumentNullException(nameof(_post));
+        if (post is null)
+            throw new ArgumentNullException(nameof(post));
 
-        Posts.Enqueue(_post);
+        Posts.Enqueue(post);
     }
 
-    public QueuedMessageInfo(IEnumerable<Post> _posts)
+    public QueuedMessageInfo(IEnumerable<Post> posts)
     {
-        if (_posts is null)
-            throw new ArgumentNullException(nameof(_posts));
+        if (posts is null)
+            throw new ArgumentNullException(nameof(posts));
 
-        foreach (var post in _posts.ToList()) 
+        foreach (var post in posts) 
             Posts.Enqueue(post);
     }
 }

@@ -8,6 +8,7 @@ services:
       - grabber_token=%place_your_token_here%
       - grabber_db_path=/db_storage
       - grabber_logs_dir=/logs
+      - grabber_proxy=%optional, remove if not needed%
     volumes:
       - ./%place_path_to_db_folder_on_host_here%:/db_storage
       - ./%place_path_to_logs_on_host_here%:/logs

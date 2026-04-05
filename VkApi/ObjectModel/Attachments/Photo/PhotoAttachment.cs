@@ -24,7 +24,7 @@ public class PhotoAttachment : IAttachmentElement
     public int? UserId { get; set; }
 
     [JsonPropertyName("text")] 
-    public string Text { get; set; }
+    public string? Text { get; set; }
 
     [JsonPropertyName("date")]
     [JsonConverter(typeof(EpochTimeJsonConverter))]
@@ -34,5 +34,5 @@ public class PhotoAttachment : IAttachmentElement
     public PhotoSizeInfo[] Sizes { get; set; } = [];
 
     [JsonPropertyName("access_key")] 
-    public string AccessKey { get; set; }
+    public string? AccessKey { get; set; }
 }

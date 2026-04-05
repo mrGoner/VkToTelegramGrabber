@@ -10,17 +10,17 @@ public class LinkAttachment : IAttachmentElement
     public AttachmentElementType Type => AttachmentElementType.Link;
 
     [JsonPropertyName("url")] 
-    public string Url { get; set; }
+    public string? Url { get; set; }
 
     [JsonPropertyName("title")] 
-    public string Title { get; set; }
+    public string? Title { get; set; }
 
     [JsonPropertyName("description")] 
-    public string Description { get; set; }
+    public string? Description { get; set; }
 
     [JsonPropertyName("caption")] 
-    public string Caption { get; set; }
+    public string? Caption { get; set; }
 
     [JsonPropertyName("access_key")] 
-    public string AccessKey { get; set; }
+    public string? AccessKey { get; set; }
 }

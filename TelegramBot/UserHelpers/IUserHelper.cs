@@ -5,12 +5,11 @@ using VkApi;
 
 namespace TelegramBot.UserHelpers;
 
-public delegate void WorkComplete(long _key);
+public delegate void WorkComplete(long key);
 
 public interface IUserHelper
 {
-    string Command { get; }
-    event WorkComplete WorkCompleteEventHandler;
-    ValueTask<Response> ProcessMessageAsync(string _message, CancellationToken _cancellationToken);
-    void Init(long _userId, Vk _vkApi, UserManager _userManager);
+    event WorkComplete? WorkCompleteEventHandler;
+    ValueTask<Response?> ProcessMessageAsync(string message, CancellationToken cancellationToken);
+    void Init(long userId, Vk vkApi, UserManager userManager);
 }

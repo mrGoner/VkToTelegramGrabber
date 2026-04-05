@@ -8,21 +8,22 @@ namespace TelegramBot.UserHelpers;
 
 public class InfoHelper : IUserHelper
 {
-    public string Command => "/help";
-    public event WorkComplete WorkCompleteEventHandler;
-    private long m_userId;
+    public static string Command => "/help";
+    public event WorkComplete? WorkCompleteEventHandler;
+    private long _userId;
 
-    public void Init(long _userId, Vk _vkApi, UserManager _userManager)
+    public void Init(long userId, Vk vkApi, UserManager userManager)
     {
-        m_userId = _userId;
+        _userId = userId;
     }
 
-    public ValueTask<Response> ProcessMessageAsync(string _message, CancellationToken _cancellationToken)
+    public ValueTask<Response?> ProcessMessageAsync(string message, CancellationToken cancellationToken)
     {
-        WorkCompleteEventHandler?.Invoke(m_userId);
-        return new ValueTask<Response>(new Response("/register - чтобы зарегистрироваться \n" +
-                                                    "/manage - для управления аккаунтом \n" +
-                                                    "исходники бота можно найти тут https://github.com/mrGoner/VkToTelegramGrabber",
+        WorkCompleteEventHandler?.Invoke(_userId);
+
+        return new ValueTask<Response?>(new Response("/register - чтобы зарегистрироваться \n" +
+                                                     "/manage - для управления аккаунтом \n" +
+                                                     "исходники бота можно найти тут https://github.com/mrGoner/VkToTelegramGrabber",
             KeyBoardBuilder.EmptyKeyboard));
     }
 }

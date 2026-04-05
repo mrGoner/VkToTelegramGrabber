@@ -8,23 +8,29 @@ namespace TelegramBot.UserHelpers;
 
 public class UserRegisterHelper : IUserHelper
 {
-    private bool m_waitingForId;
-    private bool m_waitingForToken;
-    private Vk m_vkApi;
-    private UserManager m_userManager;
-    private long m_userId;
+    private bool _waitingForId;
+    private bool _waitingForToken;
+    private Vk? _vkApi;
+    private UserManager? _userManager;
+    private long _userId;
 
-    public string Command => "/register";
+    public static string Command => "/register";
 
-    public event WorkComplete WorkCompleteEventHandler;
+    public event WorkComplete? WorkCompleteEventHandler;
 
-    public async ValueTask<Response> ProcessMessageAsync(string _message, CancellationToken _cancellationToken)
+    public async ValueTask<Response?> ProcessMessageAsync(string message, CancellationToken cancellationToken)
     {
-        if (_message == Command)
+        if (_userManager is null)
+            throw new InvalidOperationException("User manager is null, seems helper not initialized");
+
+        if (_vkApi is null)
+            throw new InvalidOperationException("Vk api is null, seems helper not initialized");
+        
+        if (message == Command)
         {
-            if (await m_userManager.GetUserAsync(m_userId.ToString(), _cancellationToken) == null)
+            if (await _userManager.GetUserAsync(_userId.ToString(), cancellationToken) == null)
             {
-                m_waitingForId = true;
+                _waitingForId = true;
                 return new Response("Для регистрации необходимо выполнить следующие шаги: \n" +
                                     "1) Перейти по ссылке https://vk.ru/apps?act=manage и создать новое standalone приложение \n" +
                                     "2) Прислать id приложения (находится в настройках созданного приложения) \n" +
@@ -33,20 +39,20 @@ public class UserRegisterHelper : IUserHelper
                                     "Если же готов продолжить - присылай id созданного приложения");
             }
 
-            WorkCompleteEventHandler?.Invoke(m_userId);
+            WorkCompleteEventHandler?.Invoke(_userId);
 
             return new Response(
                 "Ты уже зарегистрирован, если хочешь ввести другой токен - необходимо удалить текущую учетную запись");
         }
 
-        if (m_waitingForId)
+        if (_waitingForId)
         {
-            if (int.TryParse(_message, out var id))
+            if (int.TryParse(message, out var id))
             {
-                m_waitingForId = false;
-                m_waitingForToken = true;
+                _waitingForId = false;
+                _waitingForToken = true;
 
-                var url = m_vkApi.GetAuthUrl(id, VkApi.Requests.Permissions.Offline |
+                var url = _vkApi.GetAuthUrl(id, VkApi.Requests.Permissions.Offline |
                                                  VkApi.Requests.Permissions.Wall |
                                                  VkApi.Requests.Permissions.Groups |
                                                  VkApi.Requests.Permissions.Friends |
@@ -59,14 +65,14 @@ public class UserRegisterHelper : IUserHelper
             return new Response("Id не распознан, попробуй еще раз");
         }
 
-        if (m_waitingForToken)
+        if (_waitingForToken)
         {
-            if (!string.IsNullOrWhiteSpace(_message) && _message.Length > 60)
+            if (!string.IsNullOrWhiteSpace(message) && message.Length > 60)
             {
-                m_waitingForToken = false;
-                await m_userManager.AddUserAsync(m_userId.ToString(), _message, _cancellationToken);
+                _waitingForToken = false;
+                await _userManager.AddUserAsync(_userId.ToString(), message, cancellationToken);
 
-                WorkCompleteEventHandler?.Invoke(m_userId);
+                WorkCompleteEventHandler?.Invoke(_userId);
 
                 return new Response("Успешно зарегистрировано! Вызови команду для добавления групп!");
             }
@@ -74,15 +80,15 @@ public class UserRegisterHelper : IUserHelper
             return new Response("Токен не распознан как действительный, попробуй еще раз");
         }
 
-        WorkCompleteEventHandler?.Invoke(m_userId);
+        WorkCompleteEventHandler?.Invoke(_userId);
 
         return null;
     }
 
-    public void Init(long _userId, Vk _vkApi, UserManager _userManager)
+    public void Init(long userId, Vk vkApi, UserManager userManager)
     {
-        m_vkApi = _vkApi ?? throw new ArgumentNullException(nameof(_vkApi));
-        m_userManager = _userManager ?? throw new ArgumentNullException(nameof(_userManager));
-        m_userId = _userId;
+        _vkApi = vkApi ?? throw new ArgumentNullException(nameof(vkApi));
+        _userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
+        _userId = userId;
     }
 }

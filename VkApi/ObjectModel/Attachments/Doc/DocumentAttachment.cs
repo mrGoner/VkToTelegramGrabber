@@ -18,15 +18,15 @@ public class DocumentAttachment : IAttachmentElement
     public int OwnerId { get; set; }
 
     [JsonPropertyName("title")] 
-    public string Title { get; set; }
+    public string? Title { get; set; }
 
     [JsonPropertyName("date")]
     [JsonConverter(typeof(EpochTimeJsonConverter))]
     public DateTime Date { get; set; }
 
     [JsonPropertyName("url")] 
-    public string Url { get; set; }
+    public string? Url { get; set; }
 
     [JsonPropertyName("access_key")] 
-    public string AccessKey { get; set; }
+    public string? AccessKey { get; set; }
 }

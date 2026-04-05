@@ -3,5 +3,5 @@
 public interface IAttachmentElement
 {
     AttachmentElementType Type { get; }
-    string AccessKey { get; }
+    string? AccessKey { get; }
 }

@@ -1,15 +1,10 @@
 ﻿namespace VkApi.ObjectModel.Attachments;
 
-public class UnsupportedAttachment : IAttachmentElement
+public class UnsupportedAttachment(string? type) : IAttachmentElement
 {
     public AttachmentElementType Type => AttachmentElementType.Unsupported;
 
-    public string UnSupportedType { get; }
+    public string? UnSupportedType { get; } = type;
 
-    public string AccessKey => null;
-
-    public UnsupportedAttachment(string _type)
-    {
-        UnSupportedType = _type;
-    }
+    public string? AccessKey => null;
 }

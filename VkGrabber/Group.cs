@@ -9,10 +9,10 @@ public class Group
     public TimeSpan UpdatePeriod { get; }
     public string Name { get; set; }
 
-    public Group(int _groupId, TimeSpan _updatePeriod, string _name)
+    public Group(int groupId, TimeSpan updatePeriod, string name)
     {
-        GroupId = _groupId;
-        UpdatePeriod = _updatePeriod;
-        Name = _name;
+        GroupId = groupId;
+        UpdatePeriod = updatePeriod;
+        Name = name;
     }
 }

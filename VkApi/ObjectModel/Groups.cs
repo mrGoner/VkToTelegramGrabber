@@ -2,9 +2,4 @@
 
 namespace VkApi.ObjectModel;
 
-public class Groups : List<Group>
-{
-    public Groups(IEnumerable<Group> _groups) : base(_groups)
-    {
-    }
-}
+public class Groups(IEnumerable<Group> groups) : List<Group>(groups);

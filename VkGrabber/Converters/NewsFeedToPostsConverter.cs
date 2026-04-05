@@ -16,74 +16,74 @@ namespace VkGrabber.Converters;
 
 public class NewsFeedToPostsConverter
 {
-    public IEnumerable<Post> Convert(NewsFeed _newsFeed, Dictionary<int, string> _groups)
+    public IEnumerable<Post> Convert(NewsFeed newsFeed, Dictionary<int, string> groups)
     {
-        if (_newsFeed == null)
-            throw new ArgumentNullException(nameof(_newsFeed));
+        if (newsFeed == null)
+            throw new ArgumentNullException(nameof(newsFeed));
 
-        if (_groups == null)
-            throw new ArgumentNullException(nameof(_groups));
+        if (groups == null)
+            throw new ArgumentNullException(nameof(groups));
 
-        foreach (var element in _newsFeed)
+        foreach (var element in newsFeed)
         {
-            if (element is VkApi.ObjectModel.Wall.Post { MarkedAsAds: false } vkPost)
+            if (element is not VkApi.ObjectModel.Wall.Post { MarkedAsAds: false } vkPost) 
+                continue;
+            
+            Post post;
+
+            var clearSourceId = Math.Abs(vkPost.SourceId);
+
+            if (!groups.TryGetValue(clearSourceId, out var groupName))
+                continue;
+
+            if (vkPost.CopyHistory is { Length: > 0 })
             {
-                Post post;
-
-                var clearSourceId = Math.Abs(vkPost.SourceId);
-
-                _groups.TryGetValue(clearSourceId, out var groupName);
-
-                if (vkPost.CopyHistory != null && vkPost.CopyHistory.Any())
-                {
-                    var copyHistory = vkPost.CopyHistory.First();
-                    //merge maybe
-                    post = new Post(vkPost.Id, clearSourceId, copyHistory.Date, groupName, copyHistory.Text,
-                        ParseAttachments(copyHistory.Attachments).ToArray());
-                }
-                else
-                {
-                    post = new Post(vkPost.Id, clearSourceId, vkPost.Date, groupName, vkPost.Text,
-                        ParseAttachments(vkPost.Attachments).ToArray());
-                }
-
-                yield return post;
+                var copyHistory = vkPost.CopyHistory.First();
+                //merge maybe
+                post = new Post(vkPost.Id, clearSourceId, copyHistory.Date, groupName, copyHistory.Text,
+                    ParseAttachments(copyHistory.Attachments).ToArray());
             }
+            else
+            {
+                post = new Post(vkPost.Id, clearSourceId, vkPost.Date, groupName, vkPost.Text,
+                    ParseAttachments(vkPost.Attachments).ToArray());
+            }
+
+            yield return post;
         }
     }
 
-    private static List<IPostItem> ParseAttachments(IAttachmentElement[] _attachments)
+    private static List<IPostItem> ParseAttachments(IAttachmentElement[] attachments)
     {
         var items = new List<IPostItem>();
-
-        if (_attachments == null)
-            return items;
         
-        foreach (var vkAttachment in _attachments)
+        foreach (var vkAttachment in attachments)
         {
             switch (vkAttachment)
             {
                 case PhotoAttachment photo:
-                    var smallPhotoUrl = photo.Sizes.FirstOrDefault(_size => _size.Type == PhotoSizeType.X).Url;
-                    var mediumPhotoUrl = photo.Sizes.FirstOrDefault(_size => _size.Type == PhotoSizeType.Y).Url;
-                    var largePhotoUrl = photo.Sizes.FirstOrDefault(_size => _size.Type == PhotoSizeType.Z).Url;
-                    items.Add(new ImageItem(photo.Text, smallPhotoUrl, mediumPhotoUrl, largePhotoUrl));
+                    var smallPhotoUrl = photo.Sizes.FirstOrDefault(size => size.Type == PhotoSizeType.X).Url;
+                    var mediumPhotoUrl = photo.Sizes.FirstOrDefault(size => size.Type == PhotoSizeType.Y).Url;
+                    var largePhotoUrl = photo.Sizes.FirstOrDefault(size => size.Type == PhotoSizeType.Z).Url;
+
+                    if (!string.IsNullOrWhiteSpace(smallPhotoUrl) || !string.IsNullOrWhiteSpace(mediumPhotoUrl) || !string.IsNullOrWhiteSpace(largePhotoUrl))
+                        items.Add(new ImageItem(photo.Text, smallPhotoUrl, mediumPhotoUrl, largePhotoUrl));
                     break;
-                case AudioAttachment audio:
+                case AudioAttachment { Url.Length: > 0 } audio:
                     items.Add(new AudioItem(audio.Title, audio.Artist, audio.Url));
                     break;
-                case DocumentAttachment document:
+                case DocumentAttachment { Url.Length: > 0 } document:
                     items.Add(new DocumentItem(document.Title, document.Url));
                     break;
-                case LinkAttachment link:
+                case LinkAttachment { Url.Length: > 0 } link:
                     items.Add(new LinkItem(link.Url));
                     break;
                 case VideoAttachment video:
-                    if (video.IsContentRestricted || string.IsNullOrEmpty(video.PlayerUrl))
+                    if (video.IsContentRestricted || string.IsNullOrWhiteSpace(video.PlayerUrl))
                         continue;
                     items.Add(new VideoItem(video.Title, video.PlayerUrl));
                     break;
-                case NoteAttachment note:
+                case NoteAttachment { Text: not null } note:
                     items.Add(new NoteItem(note.Title, note.Text));
                     break;
             }

@@ -3,32 +3,40 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using VkGrabber.Model;
 
 namespace TelegramBot.Queue;
 
-//todo rewrite
 internal class MessageQueue
 {
-    private readonly Dictionary<long, QueuedMessageInfo> m_messages;
-    private readonly TimeSpan m_timeoutBetweenMessages;
-    private readonly Func<long, Post, Task> m_sendAction;
-    private readonly object m_syncObject = new();
-    private readonly AutoResetEvent m_autoResetEvent;
+    private readonly Dictionary<long, QueuedMessageInfo> _messages;
+    private readonly TimeSpan _timeoutBetweenMessages;
+    private readonly Func<long, Post, Task> _sendAction;
+    private readonly int _maxFailedCount;
+    private readonly ILogger<MessageQueue> _logger;
+    private readonly object _syncObject = new();
+    private readonly AutoResetEvent _autoResetEvent;
 
-    public MessageQueue(TimeSpan _timeoutBetweenMessages, int _threadCount, Func<long, Post, Task> _sendAction)
+    public MessageQueue(
+        TimeSpan timeoutBetweenMessages, int threadCount, 
+        Func<long, Post, Task> sendAction,
+        int maxFailedCount,
+        ILogger<MessageQueue> logger)
     {
-        if (_threadCount <= 0)
-            throw new ArgumentOutOfRangeException(nameof(_threadCount));
+        if (threadCount <= 0)
+            throw new ArgumentOutOfRangeException(nameof(threadCount));
 
-        m_sendAction = _sendAction ?? throw new ArgumentNullException(nameof(_sendAction));
+        _sendAction = sendAction ?? throw new ArgumentNullException(nameof(sendAction));
+        _maxFailedCount = maxFailedCount;
+        _logger = logger;
 
-        m_messages = new Dictionary<long, QueuedMessageInfo>();
-        m_timeoutBetweenMessages = _timeoutBetweenMessages;
+        _messages = new Dictionary<long, QueuedMessageInfo>();
+        _timeoutBetweenMessages = timeoutBetweenMessages;
 
-        m_autoResetEvent = new AutoResetEvent(false);
+        _autoResetEvent = new AutoResetEvent(false);
 
-        for (var i = 0; i < _threadCount; i++)
+        for (var i = 0; i < threadCount; i++)
             Task.Factory.StartNew(ProcessMessageQueue, TaskCreationOptions.LongRunning);
     }
 
@@ -36,73 +44,86 @@ internal class MessageQueue
     {
         while (true)
         {
-            Monitor.Enter(m_syncObject);
+            Monitor.Enter(_syncObject);
 
-            if (m_messages.Any())
+            if (_messages.Count > 0)
             {
-                var keyValue = m_messages.Where(_x => !_x.Value.Used).FirstOrDefault(_x =>
-                    DateTime.Now - _x.Value.LastSendTime > m_timeoutBetweenMessages && _x.Value.Posts.Any());
-
-                var messageInfo = keyValue.Value;
+                var (key, messageInfo) = _messages.Where(x => !x.Value.Used).FirstOrDefault(x =>
+                    DateTime.Now - x.Value.LastSendTime > _timeoutBetweenMessages && x.Value.Posts.Count > 0);
 
                 if (messageInfo != null)
                 {
                     messageInfo.Used = true;
 
-                    Monitor.Exit(m_syncObject);
+                    Monitor.Exit(_syncObject);
 
-                    if (messageInfo.Posts.TryDequeue(out var postToSend))
+                    if (messageInfo.Posts.TryPeek(out var postToSend))
                     {
                         try
                         {
-                            await m_sendAction(keyValue.Key, postToSend);
+                            await _sendAction(key, postToSend);
 
                             messageInfo.LastSendTime = DateTime.Now;
+
+                            messageInfo.Posts.Dequeue();
+                            
+                            messageInfo.FailedCount = 0;
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"Failed to send message {ex}");
-                            //todo enqueue postToSend?
+                            _logger.LogError(ex, "Failed to send message");
+                            
+                            messageInfo.FailedCount++;
+                            
+                            if (messageInfo.FailedCount > _maxFailedCount)
+                            {
+                                messageInfo.Posts.Dequeue();
+                                messageInfo.FailedCount = 0;
+                            }
+                            else
+                            {
+                                await Task.Delay(1000);
+                            }
                         }
                     }
 
-                    lock (m_syncObject)
+                    lock (_syncObject)
                     {
                         if (messageInfo.Posts.Count == 0)
-                            m_messages.Remove(keyValue.Key);
+                            _messages.Remove(key);
                         else
                             messageInfo.Used = false;
                     }
                 }
                 else
                 {
-                    Monitor.Exit(m_syncObject);
+                    Monitor.Exit(_syncObject);
 
                     await Task.Delay(1000);
                 }
             }
             else
             {
-                Monitor.Exit(m_syncObject);
+                Monitor.Exit(_syncObject);
 
-                m_autoResetEvent.WaitOne();
+                _autoResetEvent.WaitOne();
             }
         }
     }
 
-    public void AddMessage(Message _message)
+    public void AddMessage(Message message)
     {
-        if (_message is null)
-            throw new ArgumentNullException(nameof(_message));
+        if (message is null)
+            throw new ArgumentNullException(nameof(message));
 
-        lock (m_syncObject)
+        lock (_syncObject)
         {
-            if (m_messages.TryGetValue(_message.UserId, out var messagesInfo))
-                messagesInfo.Posts.Enqueue(_message.PostToSend);
+            if (_messages.TryGetValue(message.UserId, out var messagesInfo))
+                messagesInfo.Posts.Enqueue(message.PostToSend);
             else
-                m_messages.Add(_message.UserId, new QueuedMessageInfo(_message.PostToSend));
+                _messages.Add(message.UserId, new QueuedMessageInfo(message.PostToSend));
         }
 
-        m_autoResetEvent.Set();
+        _autoResetEvent.Set();
     }
 }

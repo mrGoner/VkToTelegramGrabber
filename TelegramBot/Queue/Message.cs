@@ -3,14 +3,8 @@ using VkGrabber.Model;
 
 namespace TelegramBot.Queue;
 
-internal class Message
+internal class Message(long userId, Post postToSend)
 {
-    public long UserId { get; }
-    public Post PostToSend { get; }
-
-    public Message(long _userId, Post _postToSend)
-    {
-        UserId = _userId;
-        PostToSend = _postToSend ?? throw new ArgumentNullException(nameof(_postToSend));
-    }
+    public long UserId { get; } = userId;
+    public Post PostToSend { get; } = postToSend ?? throw new ArgumentNullException(nameof(postToSend));
 }

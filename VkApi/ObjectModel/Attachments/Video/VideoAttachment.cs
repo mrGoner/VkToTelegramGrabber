@@ -18,10 +18,10 @@ public class VideoAttachment : IAttachmentElement
     public int OwnerId { get; set; }
 
     [JsonPropertyName("title")] 
-    public string Title { get; set; }
+    public string? Title { get; set; }
 
     [JsonPropertyName("description")] 
-    public string Description { get; set; }
+    public string? Description { get; set; }
 
     [JsonPropertyName("duration")] 
     public int Duration { get; set; }
@@ -37,10 +37,10 @@ public class VideoAttachment : IAttachmentElement
     public int? CommentsCount { get; set; }
 
     [JsonPropertyName("player")] 
-    public string PlayerUrl { get; set; }
+    public string? PlayerUrl { get; set; }
 
     [JsonPropertyName("access_key")] 
-    public string AccessKey { get; set; }
+    public string? AccessKey { get; set; }
 
     [JsonPropertyName("image")] 
     public Image[] Images { get; set; } = [];
@@ -50,5 +50,5 @@ public class VideoAttachment : IAttachmentElement
     public bool IsContentRestricted { get; set; }
 
     [JsonPropertyName("content_restricted_message")]
-    public string ContentRestrictedMessage { get; set; }
+    public string? ContentRestrictedMessage { get; set; }
 }

@@ -4,7 +4,7 @@ namespace TelegramBot;
 
 public interface IUserHelperSelector
 {
-    bool TryGetCompatibleHelper(string _command, out IUserHelper _helper);
+    bool TryGetCompatibleHelper(string command, out IUserHelper? helper);
 
     IDefaultHelper DefaultHelper { get; }
 }

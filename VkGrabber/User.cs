@@ -6,10 +6,10 @@ public class User
     public string Key { get; }
     public Group[] Groups { get; }
 
-    public User(string _token, string _key, Group[] _groups)
+    public User(string token, string key, Group[] groups)
     {
-        Token = _token;
-        Key = _key;
-        Groups = _groups;
+        Token = token;
+        Key = key;
+        Groups = groups;
     }
 }

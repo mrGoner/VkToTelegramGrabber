@@ -3,23 +3,23 @@ using System.IO;
 
 namespace VkGrabber.DataLayer;
 
-public class GrabberDbContext : DbContext
+public sealed class GrabberDbContext : DbContext
 {
     public DbSet<DbUser> DbUsers { get; set; }
     public DbSet<DbGroup> DbGroups { get; set; }
-    private readonly string m_pathToDb;
+    private readonly string _pathToDb;
 
-    public GrabberDbContext(string _pathToDb)
+    public GrabberDbContext(string pathToDb)
     {
-        m_pathToDb = _pathToDb;
+        _pathToDb = pathToDb;
         Database.EnsureCreated();
         ChangeTracker.AutoDetectChangesEnabled = true;
         ChangeTracker.LazyLoadingEnabled = false;
     }
 
 
-    protected override void OnConfiguring(DbContextOptionsBuilder _optionsBuilder)
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        _optionsBuilder.UseSqlite($"Data Source={Path.Combine(m_pathToDb, "grabber.db")}");
+        optionsBuilder.UseSqlite($"Data Source={Path.Combine(_pathToDb, "grabber.db")}");
     }
 }

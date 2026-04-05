@@ -2,9 +2,4 @@
 
 namespace VkApi.ObjectModel.Wall;
 
-public class NewsFeed : List<INewsFeedElement>
-{
-    public NewsFeed(IEnumerable<INewsFeedElement> elements) : base(elements)
-    {
-    }
-}
+public class NewsFeed(IEnumerable<INewsFeedElement> elements) : List<INewsFeedElement>(elements);

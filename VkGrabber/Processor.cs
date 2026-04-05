@@ -7,13 +7,13 @@ namespace VkGrabber;
 
 internal class Processor : IDisposable
 {
-    private readonly SemaphoreSlim m_semaphore;
-    private readonly Channel<ProcessorJob> m_processorJobs;
-    private bool m_isDisposed;
+    private readonly SemaphoreSlim _semaphore;
+    private readonly Channel<ProcessorJob> _jobsChannel;
+    private bool _isDisposed;
 
-    public Processor(int _maxPerformed, int _processorCapacity)
+    public Processor(int maxPerformed, int processorCapacity)
     {
-        m_processorJobs = Channel.CreateBounded<ProcessorJob>(new BoundedChannelOptions(_processorCapacity)
+        _jobsChannel = Channel.CreateBounded<ProcessorJob>(new BoundedChannelOptions(processorCapacity)
         {
             AllowSynchronousContinuations = true,
             FullMode = BoundedChannelFullMode.Wait,
@@ -21,49 +21,49 @@ internal class Processor : IDisposable
             SingleReader = true
         });
 
-        m_semaphore = new SemaphoreSlim(_maxPerformed, _maxPerformed);
+        _semaphore = new SemaphoreSlim(maxPerformed, maxPerformed);
 
         _ = PerformTask();
     }
 
     private async Task PerformTask()
     {
-        await foreach (var job in m_processorJobs.Reader.ReadAllAsync())
+        await foreach (var job in _jobsChannel.Reader.ReadAllAsync())
         {
-            if (m_isDisposed)
+            if (_isDisposed)
                 return;
 
-            await m_semaphore.WaitAsync();
+            await _semaphore.WaitAsync();
 
             _ = job.PlannedAction().ContinueWith(_ =>
             {
-                if (m_isDisposed)
+                if (_isDisposed)
                     return;
 
-                m_semaphore.Release();
+                _semaphore.Release();
             });
         }
     }
 
-    public async Task AddAsync(Func<Task> _action, CancellationToken _cancellationToken)
+    public async Task AddAsync(Func<Task> action, CancellationToken cancellationToken)
     {
-        if (_action == null)
-            throw new ArgumentNullException(nameof(_action));
+        if (action == null)
+            throw new ArgumentNullException(nameof(action));
 
-        if (m_isDisposed)
+        if (_isDisposed)
             throw new ObjectDisposedException(nameof(Processor));
 
-        await m_processorJobs.Writer.WriteAsync(new ProcessorJob(_action), _cancellationToken);
+        await _jobsChannel.Writer.WriteAsync(new ProcessorJob(action), cancellationToken);
     }
 
     public void Dispose()
     {
-        if (m_isDisposed)
+        if (_isDisposed)
             return;
 
-        m_isDisposed = true;
+        _isDisposed = true;
 
-        m_processorJobs.Writer.Complete();
-        m_semaphore.Dispose();
+        _jobsChannel.Writer.TryComplete();
+        _semaphore.Dispose();
     }
 }

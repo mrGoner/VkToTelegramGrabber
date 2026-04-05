@@ -10,141 +10,144 @@ using VkGrabber;
 using VkApi;
 using VkGrabber.Model;
 using TelegramBot.UserHelpers;
-using Telegram.Bot.Types.ReplyMarkups;
-using TelegramBot.Helpers;
 using Telegram.Bot.Types.Enums;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using NLog;
 using NLog.Extensions.Logging;
 using TelegramBot.Queue;
-using ILogger = Microsoft.Extensions.Logging.ILogger;
 using Message = TelegramBot.Queue.Message;
 
 namespace TelegramBot;
 
 public class Bot : IDisposable
 {
-    private readonly TelegramBotClient m_telegramBot;
-    private readonly UserManager m_userManager;
-    private readonly Grabber m_grabber;
-    private readonly Vk m_vkApi;
-    private readonly ConcurrentDictionary<long, IUserHelper> m_registeredHelpers;
-    private readonly IUserHelperSelector m_helperSelector;
-    private string m_botName;
-    private readonly MessageQueue m_messageQueue;
-    private readonly ILogger m_logger;
+    private readonly TelegramBotClient _telegramBot;
+    private readonly UserManager _userManager;
+    private readonly Grabber _grabber;
+    private readonly Vk _vkApi;
+    private readonly ConcurrentDictionary<long, IUserHelper> _registeredHelpers;
+    private readonly IUserHelperSelector _helperSelector;
+    private string? _botName;
+    private readonly MessageQueue _messageQueue;
+    private readonly ILogger<Bot> _logger;
 
-    public Bot(string _token, string _pathToDb, string _logsDir, IUserHelperSelector _helperSelector = null,
-        HttpClient _proxy = null)
+    public Bot(string token, string pathToDb, string logsDir, IUserHelperSelector? helperSelector = null,
+        HttpClient? proxy = null)
     {
-        if (_token == null)
-            throw new ArgumentNullException(nameof(_token));
-
-        m_telegramBot = new TelegramBotClient(_token, _proxy);
-        m_registeredHelpers = new ConcurrentDictionary<long, IUserHelper>();
-        m_helperSelector = _helperSelector ??
-                           new BasicHelpersSelector(
-                               [
-                                   new UserRegisterHelper(),
-                                   new UserManagementHelper(),
-                                   new InfoHelper()
-                               ],
-                               new DefaultHelper());
-
-        m_userManager = new UserManager(_pathToDb);
-
+        if (token == null)
+            throw new ArgumentNullException(nameof(token));
+        
         var loggerFactory = new NLogLoggerFactory();
 
-        LogManager.Configuration.Variables["logs_dir"] = _logsDir;
+        LogManager.Configuration?.Variables["logs_dir"] = logsDir;
 
-        m_grabber = new Grabber(TimeSpan.FromMinutes(1), 20, 1000, _pathToDb, loggerFactory);
+        _telegramBot = new TelegramBotClient(token, proxy);
+        _registeredHelpers = new ConcurrentDictionary<long, IUserHelper>();
+        _helperSelector = helperSelector ??
+                          new BasicHelpersSelector(
+                              new Dictionary<string, Type>
+                              {
+                                  { UserRegisterHelper.Command, typeof(UserRegisterHelper) },
+                                  { UserManagementHelper.Command, typeof(UserManagementHelper) },
+                                  { InfoHelper.Command, typeof(InfoHelper) }
+                              }, new DefaultHelper(), loggerFactory);
 
-        m_vkApi = new Vk();
-        m_messageQueue = new MessageQueue(TimeSpan.FromSeconds(10), 4, SendMessage);
-        m_logger = loggerFactory.CreateLogger(typeof(Bot));
+        _userManager = new UserManager(pathToDb);
 
-        m_grabber.NewDataGrabbedEventHandler += Grabber_NewDataGrabbedEventHandler;
+        _grabber = new Grabber(TimeSpan.FromMinutes(1), 20, 1000, pathToDb, loggerFactory.CreateLogger<Grabber>());
+
+        _vkApi = new Vk();
+
+        _messageQueue = new MessageQueue(TimeSpan.FromSeconds(10), 4, SendMessage, 3,
+            loggerFactory.CreateLogger<MessageQueue>());
+       
+        _logger = loggerFactory.CreateLogger<Bot>();
+
+        _grabber.NewDataGrabbedEventHandler += Grabber_NewDataGrabbedEventHandler;
     }
 
-    public async Task Start(CancellationToken _cancellationToken)
+    public async Task Start(CancellationToken cancellationToken)
     {
-        await m_grabber.Start(_cancellationToken);
-        m_botName = (await m_telegramBot.GetMe(_cancellationToken)).Username;
-
-        m_telegramBot.StartReceiving(UpdateHandler, PollingErrorHandler, cancellationToken: _cancellationToken);
-
-        m_logger.LogDebug("Bot name: {BotName} started", m_botName);
-    }
-
-    private Task PollingErrorHandler(ITelegramBotClient _client, Exception _exception,
-        CancellationToken _cancellationToken)
-    {
-        m_logger.LogError(_exception, "Pooling error occured");
-        return Task.CompletedTask;
-    }
-
-    private async Task UpdateHandler(ITelegramBotClient _client, Update _update, CancellationToken _cancellationToken)
-    {
-        switch (_update.Type)
+        try
         {
-            case UpdateType.Message:
-                await HandleMessage(_update.Message, _cancellationToken);
-                break;
-            case UpdateType.CallbackQuery:
-                await HandleCallbackQueryAsync(_update.CallbackQuery, _cancellationToken);
-                break;
+            _botName = (await _telegramBot.GetMe(cancellationToken)).Username ??
+                       throw new InvalidOperationException("Failed to get bot name");
+
+            _logger.LogInformation("Bot name: {BotName} started", _botName);
+
+            await _grabber.Start(cancellationToken);
+
+            _telegramBot.StartReceiving(UpdateHandler, PollingErrorHandler, cancellationToken: cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogCritical(ex, "Failed to start bot");
         }
     }
 
-    private async Task HandleMessage(Telegram.Bot.Types.Message _message, CancellationToken _cancellationToken)
+    private Task PollingErrorHandler(ITelegramBotClient client, Exception exception, CancellationToken cancellationToken)
     {
-        var message = _message.Text?.Trim();
+        _logger.LogError(exception, "Pooling error occured");
+        return Task.CompletedTask;
+    }
 
-        if (!string.IsNullOrWhiteSpace(message))
+    private async Task UpdateHandler(ITelegramBotClient client, Update update, CancellationToken cancellationToken)
+    {
+        if (update.Type == UpdateType.Message) 
+            await HandleMessage(update.Message, cancellationToken);
+    }
+
+    private async Task HandleMessage(Telegram.Bot.Types.Message? message, CancellationToken cancellationToken)
+    {
+        if (message is null)
+            return;
+        
+        var messageText = message.Text?.Trim();
+
+        if (!string.IsNullOrWhiteSpace(messageText))
         {
-            if (message.StartsWith("/", StringComparison.Ordinal))
+            if (messageText.StartsWith('/'))
             {
-                if (message.Contains($"@{m_botName}"))
-                    message = message.Replace($"@{m_botName}", "");
+                if (messageText.Contains($"@{_botName}"))
+                    messageText = messageText.Replace($"@{_botName}", "");
 
-                if (m_registeredHelpers.TryGetValue(_message.Chat.Id, out var helper))
+                if (_registeredHelpers.TryGetValue(message.Chat.Id, out var helper))
                 {
                     helper.WorkCompleteEventHandler -= OnHelperWorkDone;
 
-                    m_registeredHelpers.TryRemove(_message.Chat.Id, out _);
+                    _registeredHelpers.TryRemove(message.Chat.Id, out _);
                 }
 
-                if (m_helperSelector.TryGetCompatibleHelper(message, out var newHelper))
+                if (_helperSelector.TryGetCompatibleHelper(messageText, out var newHelper))
                 {
-                    newHelper.Init(_message.Chat.Id, m_vkApi, m_userManager);
+                    newHelper!.Init(message.Chat.Id, _vkApi, _userManager);
                     newHelper.WorkCompleteEventHandler += OnHelperWorkDone;
-                    m_registeredHelpers.TryAdd(_message.Chat.Id, newHelper);
+                    _registeredHelpers.TryAdd(message.Chat.Id, newHelper);
                 }
                 else
                 {
-                    await m_telegramBot.SendMessage(_message.Chat.Id,
-                        m_helperSelector.DefaultHelper.GetDefaultResponse().ReplyMessage,
-                        cancellationToken: _cancellationToken);
+                    var replyMessage = _helperSelector.DefaultHelper.GetDefaultResponse().ReplyMessage;
+                    await _telegramBot.SendMessage(message.Chat.Id, replyMessage, cancellationToken: cancellationToken);
 
                     return;
                 }
             }
 
-            if (m_registeredHelpers.ContainsKey(_message.Chat.Id))
+            if (_registeredHelpers.ContainsKey(message.Chat.Id))
             {
-                var helper = m_registeredHelpers[_message.Chat.Id];
+                var helper = _registeredHelpers[message.Chat.Id];
 
-                var response = await helper.ProcessMessageAsync(message, _cancellationToken);
+                var response = await helper.ProcessMessageAsync(messageText, cancellationToken);
 
                 if (response == null)
                 {
-                    m_registeredHelpers.TryRemove(_message.Chat.Id, out _);
+                    _registeredHelpers.TryRemove(message.Chat.Id, out _);
                 }
                 else
                 {
-                    await m_telegramBot.SendMessage(_message.Chat.Id, response.ReplyMessage,
-                        replyMarkup: response.ReplyMarkup, cancellationToken: _cancellationToken);
+                    await _telegramBot.SendMessage(message.Chat.Id, response.ReplyMessage,
+                        replyMarkup: response.ReplyMarkup, cancellationToken: cancellationToken);
                 }
             }
         }
@@ -152,175 +155,121 @@ public class Bot : IDisposable
 
     public void Stop()
     {
-        m_grabber.Stop();
+        _grabber.Stop();
     }
 
-    private async Task HandleCallbackQueryAsync(CallbackQuery _callbackQuery, CancellationToken _cancellationToken)
+    private void Grabber_NewDataGrabbedEventHandler(string userKey, Posts posts)
     {
-        if (_callbackQuery?.Message == null)
-            return;
-
-        if (_callbackQuery.Data == null)
-            return;
-
-        if (PostLikeHelper.TryParseLikeInfo(_callbackQuery.Data, out var likeInfo))
-            try
-            {
-                if (likeInfo.IsLiked)
-                {
-                    await m_telegramBot.AnswerCallbackQuery(_callbackQuery.Id,
-                        "Отметка ❤ уже поставлена", cancellationToken: _cancellationToken);
-
-                    return;
-                }
-
-                var user = await m_userManager.GetUserAsync(_callbackQuery.Message.Chat.Id.ToString(),
-                    _cancellationToken);
-
-                if (user == null)
-                {
-                    await m_telegramBot.AnswerCallbackQuery(_callbackQuery.Id, "Пользователь не найден",
-                        cancellationToken: _cancellationToken);
-
-                    return;
-                }
-
-                try
-                {
-                    await m_telegramBot.AnswerCallbackQuery(_callbackQuery.Id, "Вам ❤ это",
-                        cancellationToken: _cancellationToken);
-
-                    likeInfo.IsLiked = true;
-
-                    var likeButton = KeyBoardBuilder.BuildInlineKeyboard(new[]
-                    {
-                        new KeyValuePair<string, string>("✅❤", PostLikeHelper.SerializeInfo(likeInfo))
-                    }) as InlineKeyboardMarkup;
-
-                    await m_telegramBot.EditMessageReplyMarkup(_callbackQuery.Message.Chat.Id,
-                        _callbackQuery.Message.MessageId, likeButton,
-                        cancellationToken: _cancellationToken);
-
-                    await m_vkApi.LikePostAsync(likeInfo.OwnerId, (uint)likeInfo.ItemId, user.Token,
-                        _cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    likeInfo.IsLiked = false;
-
-                    await m_telegramBot.AnswerCallbackQuery(_callbackQuery.Id, "Не удалось поставить ❤",
-                        cancellationToken: _cancellationToken);
-
-                    var likeButton = KeyBoardBuilder.BuildInlineKeyboard(new[]
-                    {
-                        new KeyValuePair<string, string>("❤", PostLikeHelper.SerializeInfo(likeInfo))
-                    }) as InlineKeyboardMarkup;
-
-                    await m_telegramBot.EditMessageReplyMarkup(_callbackQuery.Message.Chat.Id,
-                        _callbackQuery.Message.MessageId, likeButton,
-                        cancellationToken: _cancellationToken);
-
-                    m_logger.LogError(ex, "Failed to answer likes");
-                }
-            }
-            catch (Exception ex)
-            {
-                m_logger.LogError(ex, "Error while HandleCallbackQueryAsync");
-            }
+        foreach (var post in posts) 
+            _messageQueue.AddMessage(new Message(long.Parse(userKey), post));
     }
 
-    private void Grabber_NewDataGrabbedEventHandler(string _userKey, Posts _posts)
+    private async Task SendMessage(long userId, Post post)
     {
-        foreach (var post in _posts) 
-            m_messageQueue.AddMessage(new Message(long.Parse(_userKey), post));
-    }
+        if (post is null)
+            throw new ArgumentNullException(nameof(post));
 
-    private async Task SendMessage(long _userId, Post _post)
-    {
-        if (_post is null)
-            throw new ArgumentNullException(nameof(_post));
+        var text = $"Группа: {post.GroupName} \n \n {post.Text}";
 
-        var text = $"Группа: {_post.GroupName} \n \n {_post.Text}";
-
-        var serializedLikeInfo = PostLikeHelper.SerializeInfo(new LikeInfo
+        try
         {
-            OwnerId = -_post.GroupId,
-            ItemId = _post.PostId
-        });
-
-        var likeButton =
-            KeyBoardBuilder.BuildInlineKeyboard(new[] { new KeyValuePair<string, string>("❤", serializedLikeInfo) });
-
-        if (!_post.Items.Any())
-        {
-            await m_telegramBot.SendMessage(_userId, text, replyMarkup: likeButton);
-        }
-        else
-        {
-            if (_post.Items.Length == 1)
+            if (!post.Items.Any())
             {
-                switch (_post.Items.First())
-                {
-                    case ImageItem imageItem:
-                        await m_telegramBot.SendPhoto(_userId,
-                            new InputFileUrl(imageItem.UrlLarge ?? imageItem.UrlMedium ?? imageItem.UrlSmall), text,
-                            replyMarkup: likeButton);
-                        break;
-                    case VideoItem videoItem:
-                        if (!string.IsNullOrEmpty(videoItem.Url))
-                            await m_telegramBot.SendMessage(_userId, $"{text}\n{videoItem.Url}",
-                                replyMarkup: likeButton);
-                        break;
-                    case DocumentItem documentItem:
-                        await m_telegramBot.SendDocument(_userId,
-                            new InputFileUrl(documentItem.Url), $"{text}\n{documentItem.Title}",
-                            replyMarkup: likeButton);
-                        break;
-                    case LinkItem linkItem:
-                        await m_telegramBot.SendMessage(_userId, $"{text}\n{linkItem.Url}", replyMarkup: likeButton);
-                        break;
-                    case NoteItem noteItem:
-                        await m_telegramBot.SendMessage(_userId, $"{text}\n{noteItem.Text}", replyMarkup: likeButton);
-                        break;
-                }
+                await SendMessage(userId, text);
             }
             else
             {
-                await m_telegramBot.SendMessage(_userId, text, replyMarkup: likeButton);
-
-                var media = new List<IAlbumInputMedia>();
-
-                foreach (var postItem in _post.Items)
+                if (post.Items.Length == 1)
                 {
-                    switch (postItem)
+                    if (text.Length > 1020)
                     {
+                        _logger.LogInformation(
+                            $"Post have text with length: {text.Length}. Send media and text separately");
+
+                        await SendMessage(userId, text);
+                        text = string.Empty;
+                    }
+
+                    switch (post.Items.First())
+                    {
+                        case AudioItem audioItem:
+                            await _telegramBot.SendAudio(userId, new InputFileUrl(audioItem.Url), text);
+                            break;
                         case ImageItem imageItem:
-                            media.Add(new InputMediaPhoto(
-                                new InputFileUrl(imageItem.UrlLarge ?? imageItem.UrlMedium ?? imageItem.UrlSmall)));
+                            await _telegramBot.SendPhoto(userId, new InputFileUrl(imageItem.UrlLarge ?? imageItem.UrlMedium ?? imageItem.UrlSmall), text);
                             break;
                         case VideoItem videoItem:
-                            if (!string.IsNullOrEmpty(videoItem.Url))
-                                media.Add(new InputMediaVideo(new InputFileUrl(videoItem.Url)));
+                            await _telegramBot.SendMessage(userId, $"{text}\n{videoItem.Url}");
+                            break;
+                        case DocumentItem documentItem:
+                            await _telegramBot.SendDocument(userId, new InputFileUrl(documentItem.Url), $"{text}\n{documentItem.Title}");
+                            break;
+                        case LinkItem linkItem:
+                            await _telegramBot.SendMessage(userId, $"{text}\n{linkItem.Url}");
+                            break;
+                        case NoteItem noteItem:
+                            await _telegramBot.SendMessage(userId, $"{text}\n{noteItem.Text}");
                             break;
                     }
                 }
+                else
+                {
+                    await SendMessage(userId, text);
 
-                if (media.Any())
-                    await m_telegramBot.SendMediaGroup(_userId, media);
+                    var mediaToSend = new List<(MediaType MediaType, IAlbumInputMedia Media)>(post.Items.Length);
+
+                    foreach (var postItem in post.Items)
+                    {
+                        switch (postItem)
+                        {
+                            case DocumentItem documentItem:
+                                mediaToSend.Add((MediaType.Document, new InputMediaDocument(new InputFileUrl(documentItem.Url))));
+                                break;
+                            case ImageItem imageItem:
+                                mediaToSend.Add((MediaType.Image, new InputMediaPhoto(new InputFileUrl(imageItem.UrlLarge ?? imageItem.UrlMedium ?? imageItem.UrlSmall))));
+                                break;
+                            case VideoItem videoItem:
+                                mediaToSend.Add((MediaType.Video, new InputMediaVideo(new InputFileUrl(videoItem.Url))));
+                                break;
+                        }
+                    }
+
+                    foreach (var mediaGroup in mediaToSend.GroupBy(tuple => tuple.MediaType, tuple => tuple.Media))
+                        await _telegramBot.SendMediaGroup(userId, mediaGroup);
+                }
             }
+        }
+        catch (Exception ex) when (ex.Message.Contains("WEBPAGE_MEDIA_EMPTY"))
+        {
+            _logger.LogWarning(ex, "Media not available, skip it. Post: {Post}", post);
         }
     }
 
-    private void OnHelperWorkDone(long _userKey)
+    private async Task SendMessage(long userId, string message)
     {
-        var helper = m_registeredHelpers.FirstOrDefault(_x => _x.Key == _userKey);
+        if(message.Length > 4090)
+            _logger.LogWarning($"Text length is {message.Length} chunk it");
 
-        m_registeredHelpers.TryRemove(helper.Key, out _);
+        foreach (var chunkedText in message.Chunk(4090))
+            await _telegramBot.SendMessage(userId, new string(chunkedText));
+    }
+
+    private void OnHelperWorkDone(long userKey)
+    {
+        if (_registeredHelpers.TryRemove(userKey, out var removedHelper))
+            removedHelper.WorkCompleteEventHandler -= OnHelperWorkDone;
     }
 
     public void Dispose()
     {
-        m_grabber.NewDataGrabbedEventHandler -= Grabber_NewDataGrabbedEventHandler;
-        m_grabber.Dispose();
+        _grabber.NewDataGrabbedEventHandler -= Grabber_NewDataGrabbedEventHandler;
+        _grabber.Dispose();
+    }
+    
+    private enum MediaType
+    {
+        Document,
+        Image,
+        Video
     }
 }

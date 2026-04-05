@@ -4,17 +4,17 @@ namespace TelegramBot.UserHelpers;
 
 public class Response
 {
-    public ReplyMarkup ReplyMarkup { get; }
+    public ReplyMarkup? ReplyMarkup { get; }
     public string ReplyMessage { get; }
 
-    public Response(string _replyMessage)
+    public Response(string replyMessage)
     {
-        ReplyMessage = _replyMessage;
+        ReplyMessage = replyMessage;
     }
 
-    public Response(string _replyMessage, ReplyMarkup _replyMarkup)
+    public Response(string replyMessage, ReplyMarkup replyMarkup)
     {
-        ReplyMessage = _replyMessage;
-        ReplyMarkup = _replyMarkup;
+        ReplyMessage = replyMessage;
+        ReplyMarkup = replyMarkup;
     }
 }

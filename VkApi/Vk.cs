@@ -9,54 +9,45 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
 
 namespace VkApi;
 
 public class Vk
 {
-    private readonly NewsFeedItemsDeserializer m_newsFeedItemsDeserializer;
-    private readonly GroupsDeserializer m_groupsDeserializer;
-    private readonly LikesDeserializer m_likesDeserializer;
-    private readonly VideoInfoDeserializer m_videoInfoDeserializer;
+    private readonly NewsFeedItemsDeserializer _newsFeedItemsDeserializer = new();
+    private readonly GroupsDeserializer _groupsDeserializer = new();
+    private readonly LikesDeserializer _likesDeserializer = new();
+    private readonly VideoInfoDeserializer _videoInfoDeserializer = new();
     private const string CurrentVkVersion = "5.199";
     private const string BaseUrl = "https://api.vk.ru/method";
 
-    public Vk()
-    {
-        m_newsFeedItemsDeserializer = new NewsFeedItemsDeserializer();
-        m_groupsDeserializer = new GroupsDeserializer();
-        m_likesDeserializer = new LikesDeserializer();
-        m_videoInfoDeserializer = new VideoInfoDeserializer();
-    }
-
-    public async Task<NewsFeed> GetNewsFeedAsync(string _userToken, DateTime _start, DateTime _end, string _sourceIds,
-        CancellationToken _cancellationToken)
+    public async Task<NewsFeed> GetNewsFeedAsync(string userToken, DateTime start, DateTime end, string sourceIds,
+        CancellationToken cancellationToken)
     {
         try
         {
             using var requestExecutor = new RestClient(BaseUrl);
 
             var fetchedItems = new List<INewsFeedElement>(10);
-            string nextToken = null;
+            string? nextToken = null;
 
             do
             {
-                var request = RequestBuilder.BuildNewsFeedRequest(_userToken, CurrentVkVersion,
-                    _start, _end, _sourceIds, nextToken == null ? 50 : 70, nextToken);
+                var request = RequestBuilder.BuildNewsFeedRequest(userToken, CurrentVkVersion,
+                    start, end, sourceIds, nextToken == null ? 50 : 70, nextToken);
 
-                var responseData = await requestExecutor.ExecuteGetAsync(new RestRequest(request), _cancellationToken);
+                var response = await requestExecutor.ExecuteGetAsync(new RestRequest(request), cancellationToken);
 
-                if (!responseData.IsSuccessStatusCode)
-                    throw new HttpRequestException($"Status code {responseData.StatusCode} not indicate success");
+                ThrowIfNotSuccessfulResponse(response);
 
-                var itemsWithToken = m_newsFeedItemsDeserializer.Deserialize(responseData.Content);
+                var itemsWithToken = _newsFeedItemsDeserializer.Deserialize(response.Content!);
 
                 fetchedItems.AddRange(itemsWithToken.Items);
                 nextToken = itemsWithToken.NextToken;
 
                 if (!string.IsNullOrWhiteSpace(nextToken))
-                    await Task.Delay(TimeSpan.FromSeconds(1), _cancellationToken); // for avoiding request limiter
+                    await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken); // for avoiding request limiter
+
             } while (!string.IsNullOrWhiteSpace(nextToken));
 
             var videosToEnrich = new List<VideoAttachment>(10);
@@ -67,7 +58,7 @@ public class Vk
                     videosToEnrich.AddRange(ExtractVideoAttachmentsFromPost(post));
             }
 
-            await EnrichVideoItems(_userToken, videosToEnrich, _cancellationToken);
+            await EnrichVideoItems(userToken, videosToEnrich, cancellationToken);
 
             return new NewsFeed(fetchedItems);
         }
@@ -81,17 +72,19 @@ public class Vk
         }
     }
 
-    public async Task<Groups> GetGroupsAsync(string _userToken, int _count, CancellationToken _cancellationToken)
+    public async Task<Groups> GetGroupsAsync(string userToken, int count, CancellationToken cancellationToken)
     {
         try
         {
-            var request = RequestBuilder.BuildGroupRequest(_userToken, CurrentVkVersion, _count);
+            var request = RequestBuilder.BuildGroupRequest(userToken, CurrentVkVersion, count);
 
             using var requestExecutor = new RestClient(BaseUrl);
 
-            var responseData = await requestExecutor.ExecuteGetAsync(new RestRequest(request), _cancellationToken);
+            var response = await requestExecutor.ExecuteGetAsync(new RestRequest(request), cancellationToken);
 
-            var groups = m_groupsDeserializer.Deserialize(responseData.Content);
+            ThrowIfNotSuccessfulResponse(response);
+
+            var groups = _groupsDeserializer.Deserialize(response.Content!);
 
             return groups;
         }
@@ -105,71 +98,50 @@ public class Vk
         }
     }
 
-    public async Task<int> LikePostAsync(int _itemOwner, uint _itemId, string _userToken,
-        CancellationToken _cancellationToken)
-    {
-        try
-        {
-            var request =
-                RequestBuilder.BuildLikeRequest(LikeType.Post, _itemOwner, _itemId, _userToken, CurrentVkVersion);
+    public string GetAuthUrl(int applicationId, Permissions permissions) =>
+        RequestBuilder.BuildAuthString(applicationId, permissions, CurrentVkVersion);
 
-            using var requestExecutor = new RestClient(BaseUrl);
-
-            var responseData = await requestExecutor.ExecuteGetAsync(new RestRequest(request), _cancellationToken);
-            
-            var likesCount = m_likesDeserializer.ParseLikesCount(responseData.Content);
-
-            return likesCount;
-        }
-        catch (DeserializerException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            throw new VkException($"Failed to like post for owner {_itemOwner} itemId {_itemId}", ex);
-        }
-    }
-
-    public string GetAuthUrl(int _applicationId, Permissions _permissions)
-    {
-        return RequestBuilder.BuildAuthString(_applicationId, _permissions, CurrentVkVersion);
-    }
-
-    private async Task EnrichVideoItems(string _userToken, IEnumerable<VideoAttachment> _videoAttachments,
-        CancellationToken _cancellationToken)
+    private async Task EnrichVideoItems(string userToken, IEnumerable<VideoAttachment> videoAttachments,
+        CancellationToken cancellationToken)
     {
         using var requestExecutor = new RestClient(BaseUrl);
 
-        foreach (var videoAttachment in _videoAttachments)
+        foreach (var videoAttachment in videoAttachments)
         {
             //todo getvideos by ownerId
-            var getVideoRequest = RequestBuilder.BuildGetVideoRequest(_userToken, CurrentVkVersion,
+            var getVideoRequest = RequestBuilder.BuildGetVideoRequest(userToken, CurrentVkVersion,
                 videoAttachment.OwnerId, videoAttachment.Id);
 
-            var responseData =
-                await requestExecutor.ExecuteGetAsync(new RestRequest(getVideoRequest), _cancellationToken);
+            var response = await requestExecutor.ExecuteGetAsync(new RestRequest(getVideoRequest), cancellationToken);
 
-            var videoInfo = m_videoInfoDeserializer.Deserialize(responseData.Content);
+            ThrowIfNotSuccessfulResponse(response);
+            
+            var videoInfo = _videoInfoDeserializer.Deserialize(response.Content!);
 
             videoAttachment.PlayerUrl = videoInfo?.PlayerUrl;
 
-            await Task.Delay(TimeSpan.FromSeconds(1), _cancellationToken); //to avoid request limiter 
+            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken); //to avoid request limiter 
         }
     }
 
-    private static IReadOnlyCollection<VideoAttachment> ExtractVideoAttachmentsFromPost(Post _post)
+    private static IReadOnlyCollection<VideoAttachment> ExtractVideoAttachmentsFromPost(Post post)
     {
         var videosToEnrich = new List<VideoAttachment>();
 
-        var videoAttachments = _post.Attachments.OfType<VideoAttachment>().Where(_video =>
-            string.IsNullOrWhiteSpace(_video.PlayerUrl) && _video.IsContentRestricted == false);
+        var videoAttachments = post.Attachments.OfType<VideoAttachment>().Where(video =>
+            string.IsNullOrWhiteSpace(video.PlayerUrl) && !video.IsContentRestricted);
 
         videosToEnrich.AddRange(videoAttachments);
 
-        foreach (var copyHistory in _post.CopyHistory)
+        foreach (var copyHistory in post.CopyHistory)
             videosToEnrich.AddRange(ExtractVideoAttachmentsFromPost(copyHistory));
 
         return videosToEnrich;
+    }
+    
+    private static void ThrowIfNotSuccessfulResponse(RestResponse response)
+    {
+        if (!response.IsSuccessStatusCode)
+            throw new Exception($"Response not indicate success. Status: {response.StatusCode} Response content: {response.Content}");
     }
 }

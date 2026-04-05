@@ -16,14 +16,14 @@ public class AudioAttachment : IAttachmentElement
     public int OwnerId { get; set; }
 
     [JsonPropertyName("artist")] 
-    public string Artist { get; set; }
+    public string? Artist { get; set; }
 
     [JsonPropertyName("title")] 
-    public string Title { get; set; }
+    public string? Title { get; set; }
 
     [JsonPropertyName("url")] 
-    public string Url { get; set; }
+    public string? Url { get; set; }
 
     [JsonPropertyName("access_key")] 
-    public string AccessKey { get; set; }
+    public string? AccessKey { get; set; }
 }

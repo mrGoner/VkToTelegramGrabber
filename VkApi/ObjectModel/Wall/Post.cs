@@ -16,7 +16,7 @@ public class Post : INewsFeedElement
     public int Id { get; set; }
 
     [JsonPropertyName("text")] 
-    public string Text { get; set; }
+    public string? Text { get; set; }
 
     [JsonPropertyName("date")]
     [JsonConverter(typeof(EpochTimeJsonConverter))]

@@ -7,18 +7,18 @@ namespace VkApi.Serializers;
 
 public class VideoInfoDeserializer
 {
-    public VideoInfo Deserialize(string _data)
+    public VideoInfo? Deserialize(string data)
     {
         try
         {
-            using var document = JsonDocument.Parse(_data);
+            using var document = JsonDocument.Parse(data);
             var items = document.RootElement.GetProperty("response").GetProperty("items");
 
-            return items.Deserialize<VideoInfo[]>().FirstOrDefault();
+            return items.Deserialize<VideoInfo[]>()?.FirstOrDefault();
         }
         catch (Exception ex)
         {
-            throw new DeserializerException("Failed to deserialize video info", _data, ex);
+            throw new DeserializerException("Failed to deserialize video info", data, ex);
         }
     }
 }

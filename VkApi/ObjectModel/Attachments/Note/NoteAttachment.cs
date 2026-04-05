@@ -13,11 +13,11 @@ public class NoteAttachment : IAttachmentElement
     public int OwnerId { get; set; }
     
     [JsonPropertyName("title")] 
-    public string Title { get; set; }
+    public string? Title { get; set; }
     
     [JsonPropertyName("text")] 
-    public string Text { get; set; }
+    public string? Text { get; set; }
     
     [JsonPropertyName("access_key")] 
-    public string AccessKey { get; set; }
+    public string? AccessKey { get; set; }
 }
